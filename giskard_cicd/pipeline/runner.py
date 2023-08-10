@@ -14,12 +14,13 @@ class PipelineRunner:
         self.loaders = loaders
         self.detectors = detectors
 
-    def run(self, loader_id, model_id, **args):
+    def run(self, loader_id, **kwargs):
+
         # Get the loader
         loader = self.loaders[loader_id]
 
         # Load the model and dataset
-        gsk_model, gsk_dataset = loader.load_model_dataset(model_id, **args)
+        gsk_model, gsk_dataset = loader.load_giskard_model_dataset(**kwargs)
 
         # Run the scanner
         scan_result = gsk.scan(gsk_model, gsk_dataset, only=self.detectors)
