@@ -82,7 +82,7 @@ Current implementation has two loaders:
 - The `github` loader which can be run from the command line (after running `python train.py` in `examples/github`):
 
    ```bash
-   $ python cli.py --loader github --loader_module_path examples/github/my_github_loader.py --model examples/github/model.pkl --dataset examples/github/titanic_test_data.csv 
+   $ python cli.py --loader github --model examples/github/artifacts/model --dataset examples/github/artifacts/dataset
    ```
   
 - The `huggingface` loader which can be run from the command line:
