@@ -1,4 +1,8 @@
 import giskard
+import yaml
+
+with open("cicd_config.yaml") as yaml_f:
+    cicd_config = yaml.load(yaml_f, Loader=yaml.Loader)
 
 # Replace this with your own data & model creation.
 df = giskard.demo.titanic_df()
@@ -29,11 +33,5 @@ giskard_model = giskard.Model(
     # classification_threshold=0.5,  # Default: 0.5
 )
 
-import pathlib
-pathlib.Path('artifacts').mkdir(parents=True, exist_ok=True)
-pathlib.Path('artifacts/dataset').mkdir(parents=True, exist_ok=True)
-pathlib.Path('artifacts/model').mkdir(parents=True, exist_ok=True)
-
-#TODO: change the Dataset.save() method to be like Model.save(), i.e. without the id requirement
-giskard_dataset.save(pathlib.Path("artifacts/dataset"), 0)
-giskard_model.save(pathlib.Path("artifacts/model"))
+from giskard_cicd import dump_model_and_dataset_for_cicd
+dump_model_and_dataset_for_cicd(cicd_config["artifact_path"], giskard_model, giskard_dataset)
