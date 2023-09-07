@@ -21,5 +21,6 @@ def dump_model_and_dataset_for_cicd(artifact_path, giskard_model, giskard_datase
     pathlib.Path(artifact_path+'/artifacts/model').mkdir(parents=True, exist_ok=True)
 
     #TODO: change the Dataset.save() method to be like Model.save(), i.e. without the id requirement
-    giskard_dataset.save(pathlib.Path(artifact_path+"artifacts/dataset"), 0)
-    giskard_model.save(pathlib.Path(artifact_path+"artifacts/model"))
+    giskard_dataset.save(pathlib.Path(artifact_path+"/artifacts/dataset"), 0)
+    giskard_model.save(pathlib.Path(artifact_path+"/artifacts/model"))
+    print("Your model and dataset are successfully dumped for CI/CD.")
