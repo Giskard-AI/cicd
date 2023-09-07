@@ -12,18 +12,13 @@ from giskard.models.base import BaseModel
 from giskard.models.huggingface import HuggingFaceModel
 from transformers.pipelines import TextClassificationPipeline
 
+from .base_loader import BaseLoader, DatasetError
+
 logger = logging.getLogger(__name__)
 
 
-class LoaderError(RuntimeError):
-    """Could not load the model and/or dataset."""
+class HuggingFaceLoader(BaseLoader):
 
-
-class DatasetError(LoaderError):
-    """Problems related to the dataset."""
-
-
-class HuggingFaceLoader:
     def __init__(self, device=None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -39,17 +34,17 @@ class HuggingFaceLoader:
         dataset_id = model_card["datasets"][0]
         return dataset_id
 
-    def load_model_dataset(self, model_id, dataset_id=None, dataset_config=None, dataset_split=None):
+    def load_giskard_model_dataset(self, model_id, dataset=None, dataset_config=None, dataset_split=None):
         # If no dataset was provided, we try to get it from the model metadata.
-        if dataset_id is None:
+        if dataset is None:
             logger.debug("No dataset provided. Trying to get it from the model metadata.")
-            dataset_id = self._find_dataset_id_from_model(model_id)
-            logger.debug(f"Found dataset `{dataset_id}`.")
+            dataset = self._find_dataset_id_from_model(model_id)
+            logger.debug(f"Found dataset `{dataset}`.")
 
         # Loading the model is easy. What is complicated is to get the dataset.
         # So we start by trying to get the dataset, because if we fail, we don't
         # want to waste time downloading the model.
-        hf_dataset = self.load_dataset(dataset_id, dataset_config, dataset_split, model_id)
+        hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model_id)
 
         # Load the model.
         hf_model = self.load_model(model_id)

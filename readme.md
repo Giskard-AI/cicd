@@ -13,13 +13,13 @@ The **reporters** are responsible for sending the report to the appropriate dest
 
 ### Tasks
 
-Task could be data objects containig all the information needed to run a CI/CD pipeline. For example:
+Task could be data objects containing all the information needed to run a CI/CD pipeline. For example:
 
 ```json
 {
     "loader_id": "huggingface",
-    "model_id": "distilbert-base-uncased",
-    "dataset_id": "sst2",
+    "model": "distilbert-base-uncased",
+    "dataset": "sst2",
     "loader_args": {
         "dataset_split": "validation",
     },
@@ -36,8 +36,8 @@ or
 ```json
 {
     "loader_id": "github",
-    "model_id": "my.package::load_model",
-    "dataset_id": "my.package::load_test_dataset",
+    "model": "my.package::load_model",
+    "dataset": "my.package::load_test_dataset",
     "loader_args": {
         "repository": "My-Organization/my_project",
         "branch": "dev-test2",
@@ -64,8 +64,8 @@ task = get_task_from_queue_or_envirnoment()
 
 loader = get_loader(task.loader_id)
 gsk_model, gsk_dataset = loader.load_model_dataset(
-    task.model_id,
-    task.dataset_id,
+    task.model,
+    task.dataset,
     **task.loader_args,
 )
 
@@ -78,10 +78,17 @@ reporter.push_report(report, **task.reporter_args)
 
 ## Prototype
 
-Current implementation has a `huggingface` loader and a prototype can be run from the command line:
+Current implementation has two loaders:
+- The `github` loader which can be run from the command line (after running `python train.py` in `examples/github`):
 
-```bash
-$ python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --output demo_report.html
-```
+   ```bash
+   $ python cli.py --loader github --model examples/github/artifacts/model --dataset examples/github/artifacts/dataset
+   ```
+  
+- The `huggingface` loader which can be run from the command line:
+
+  ```bash
+  $ python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --output demo_report.html
+  ```
 
 This will launch a pipeline that will load the model and dataset from the HuggingFace hub, run the scan and generate a report in HTML format (for now).

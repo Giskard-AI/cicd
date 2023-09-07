@@ -1,6 +1,6 @@
 import argparse
 
-from giskard_cicd.loaders import HuggingFaceLoader
+from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
 
 if __name__ == "__main__":
@@ -9,11 +9,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--loader",
-        help="Which loader to use to set up the model. Currently only `huggingface` is supported.",
+        help="Which loader to use to set up the model. Currently only `github` and `huggingface` are supported.",
         required=True,
     )
     parser.add_argument("--model", help="The model to scan.", required=True)
-    parser.add_argument("--dataset_id", help="The validation or test dataset that will be used.")
+    parser.add_argument("--dataset", help="The validation or test dataset that will be used.")
     parser.add_argument(
         "--dataset_split", help="The split of the dataset to use. If not provided, the best split will be selected."
     )
@@ -22,14 +22,22 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    runner = PipelineRunner(loaders={"huggingface": HuggingFaceLoader()}, detectors=["robustness"])
-    report = runner.run(
-        loader_id=args.loader,
-        model_id=args.model,
-        dataset_id=args.dataset_id,
-        dataset_split=args.dataset_split,
-        dataset_config=args.dataset_config,
-    )
+    supported_loaders = {
+        "huggingface": HuggingFaceLoader(),
+        "github": GithubLoader(),
+    }
+
+    runner = PipelineRunner(loaders=supported_loaders, detectors=["robustness"])
+
+    runner_kwargs = {"loader_id": args.loader,
+                     "model": args.model,
+                     "dataset": args.dataset}
+
+    if args.loader == "huggingface":
+        runner_kwargs.update({"dataset_split": args.dataset_split,
+                              "dataset_config": args.dataset_config})
+
+    report = runner.run(**runner_kwargs)
 
     # In the future, write markdown report or directly push to discussion.
     html_report = report.to_html()
