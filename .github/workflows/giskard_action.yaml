@@ -1,0 +1,41 @@
+name: Deployment workflow
+
+on:
+  push:
+    paths:
+      - 'examples/github/train.py'
+      - 'examples/github/titanic_test_data.csv'
+
+jobs:
+  Deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      - name: checkout repo content
+        uses: actions/checkout@v4 # checkout the repository content to github runner
+
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' # install the python version needed
+
+      - uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+        with:
+          requirement_files: examples/github/requirements.txt  # this is optional
+
+      - uses: syphar/restore-pip-download-cache@v1
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+
+        # the package installation will only be executed when the
+        # requirements-files have changed.
+      - run: pip install -r requirements.txt
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+
+      - name: execute pipeline
+        run: |
+          python cli.py --loader github --model examples/github/artifacts/model --dataset examples/github/artifacts/dataset --output_format markdown
