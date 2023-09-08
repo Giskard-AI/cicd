@@ -8,6 +8,9 @@ class PipelineReport:
     def to_html(self):
         return self.scan_result.to_html()
 
+    def to_markdown(self, template):
+        return self.scan_result.to_markdown(template="github")
+
 
 class PipelineRunner:
     def __init__(self, loaders, detectors):

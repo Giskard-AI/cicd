@@ -19,6 +19,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--dataset_config", help="The name of the dataset config subset to use.")
     parser.add_argument("--output", help="Optional name of the output file.")
+    parser.add_argument("--output_format", help="Format of the report (either HTML or markdown). Default is HTML.")
 
     args = parser.parse_args()
 
@@ -40,11 +41,14 @@ if __name__ == "__main__":
     report = runner.run(**runner_kwargs)
 
     # In the future, write markdown report or directly push to discussion.
-    html_report = report.to_html()
+    if args.output_format == "markdown":
+        rendered_report = report.to_markdown(template="github")
+    else:
+        rendered_report = report.to_html()
 
     if args.output:
         with open(args.output, "w") as f:
-            f.write(html_report)
+            f.write(rendered_report)
     else:
         # To stdout
-        print(html_report)
+        print(rendered_report)
