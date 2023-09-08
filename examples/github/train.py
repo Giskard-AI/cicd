@@ -1,7 +1,8 @@
 import giskard
 import yaml
 
-with open("cicd_config.yaml") as yaml_f:
+path_to_config = __file__.split("train.py")[0]+"cicd_config.yaml"
+with open(path_to_config) as yaml_f:
     cicd_config = yaml.load(yaml_f, Loader=yaml.Loader)
 
 # Replace this with your own data & model creation.
