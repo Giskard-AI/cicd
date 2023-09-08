@@ -1,4 +1,5 @@
 giskard>=2.0.0b
+git+https://github.com/Giskard-AI/cicd.git@main
 json5==0.9.10
 jsonpatch==1.32
 jsonpointer==2.3
