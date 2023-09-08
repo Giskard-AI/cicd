@@ -5,6 +5,7 @@ on:
     paths:
       - 'examples/github/train.py'
       - 'examples/github/titanic_test_data.csv'
+      - 'examples/github/requirements.txt' # temporarily
       - '.github/workflows/giskard_action.yaml' # temporarily
 
 jobs:
