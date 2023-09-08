@@ -36,6 +36,10 @@ jobs:
         # the package installation will only be executed when the
         # requirements-files have changed.
       - run: pip install -r examples/github/requirements.txt
+        env:
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
 
       - name: training
