@@ -3,7 +3,6 @@ import pandas as pd
 from ast import literal_eval
 from string import Template
 import os
-import tqdm
 
 
 def model_has_dataset(model):
@@ -34,21 +33,25 @@ if __name__ == "__main__":
     df = pd.read_csv(args.data_path)
 
     command_template = Template("python cli.py --loader huggingface --model $model --dataset $dataset "
-                                "--dataset_split validation --output ${output_path}/${model}__default_scan_with__${dataset}.html")
+                                "--dataset_split $dataset_split --dataset_config ${dataset} "
+                                "--output ${output_path}/${model}__default_scan_with__${dataset}.html")
 
     check_exist_template = Template("${output_path}/${model}__default_scan_with__${dataset}.html")
 
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    for i in tqdm(range(int(args.first_Nmodels))):
+    dataset_split_exceptions = { "facebook/bart-large-mnli" : "validation_matched"}
+
+    for i in range(int(args.first_Nmodels)):
         row = df.iloc[i]
         model = row.modelId
         dataset = literal_eval(row.datasets)[0]
 
-        print(f"==== Scaning {model} with {dataset} ====")
+        print(f"==== Scanning {model} with {dataset} ====")
 
-        result_path = check_exist_template.substitute(model=model, dataset=dataset, output_path=args.output_path)
+        result_path = check_exist_template.substitute(model=model, dataset=dataset,
+                                                      output_path=args.output_path)
         if os.path.exists(result_path):
             answer = input(f"{result_path} already exists, Overwrite[o] or Skip[s]? ")
 
@@ -60,5 +63,7 @@ if __name__ == "__main__":
             elif answer == 's':
                 continue
 
-        command = command_template.substitute(model=model, dataset=dataset, output_path=args.output_path)
+        command = command_template.substitute(model=model, dataset=dataset,
+                                              dataset_split=dataset_split_exceptions.get(model, "validation"),
+                                              output_path=args.output_path)
         os.system(command)
