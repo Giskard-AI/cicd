@@ -3,6 +3,7 @@ import pandas as pd
 from ast import literal_eval
 from string import Template
 import os
+import tqdm
 
 
 def model_has_dataset(model):
@@ -40,17 +41,19 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    for i in range(int(args.first_Nmodels)):
+    for i in tqdm(range(int(args.first_Nmodels))):
         row = df.iloc[i]
         model = row.modelId
         dataset = literal_eval(row.datasets)[0]
+
+        print(f"==== Scaning {model} with {dataset} ====")
 
         result_path = check_exist_template.substitute(model=model, dataset=dataset, output_path=args.output_path)
         if os.path.exists(result_path):
             answer = input(f"{result_path} already exists, Overwrite[o] or Skip[s]? ")
 
             while answer not in ["o", "s"]:
-                answer = input("Unvalid answer, please choose between 'o' and 's'")
+                answer = input("Invalid answer, please choose between 'o' and 's'")
 
             if answer == 'o':
                 os.remove(result_path)
