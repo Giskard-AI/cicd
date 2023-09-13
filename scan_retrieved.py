@@ -33,7 +33,7 @@ if __name__ == "__main__":
     df = pd.read_csv(args.data_path)
 
     command_template = Template("python cli.py --loader huggingface --model $model --dataset $dataset "
-                                "--dataset_split $dataset_split --dataset_config ${dataset} "
+                                "--dataset_split $dataset_split --dataset_config $dataset_config "
                                 "--output ${output_path}/${model}__default_scan_with__${dataset}.html")
 
     check_exist_template = Template("${output_path}/${model}__default_scan_with__${dataset}.html")
@@ -42,6 +42,9 @@ if __name__ == "__main__":
         os.makedirs(args.output_path)
 
     dataset_split_exceptions = { "facebook/bart-large-mnli" : "validation_matched"}
+
+
+    dataset_config_exceptions = {"tweet_eval": "sentiment"}
 
     for i in range(int(args.first_Nmodels)):
         row = df.iloc[i]
@@ -65,5 +68,6 @@ if __name__ == "__main__":
 
         command = command_template.substitute(model=model, dataset=dataset,
                                               dataset_split=dataset_split_exceptions.get(model, "validation"),
+                                              dataset_config=dataset_config_exceptions.get(dataset, None),
                                               output_path=args.output_path)
         os.system(command)
