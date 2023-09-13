@@ -34,20 +34,20 @@ class HuggingFaceLoader(BaseLoader):
         dataset_id = model_card["datasets"][0]
         return dataset_id
 
-    def load_giskard_model_dataset(self, model_id, dataset=None, dataset_config=None, dataset_split=None):
+    def load_giskard_model_dataset(self, model, dataset=None, dataset_config=None, dataset_split=None):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
             logger.debug("No dataset provided. Trying to get it from the model metadata.")
-            dataset = self._find_dataset_id_from_model(model_id)
+            dataset = self._find_dataset_id_from_model(model)
             logger.debug(f"Found dataset `{dataset}`.")
 
         # Loading the model is easy. What is complicated is to get the dataset.
         # So we start by trying to get the dataset, because if we fail, we don't
         # want to waste time downloading the model.
-        hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model_id)
+        hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model)
 
         # Load the model.
-        hf_model = self.load_model(model_id)
+        hf_model = self.load_model(model)
 
         # Check that the dataset has the good feature names for the task.
         feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
