@@ -34,5 +34,5 @@ giskard_model = giskard.Model(
     # classification_threshold=0.5,  # Default: 0.5
 )
 
-from giskard_cicd import dump_model_and_dataset_for_cicd
+from giskard_cicd.utils import dump_model_and_dataset_for_cicd
 dump_model_and_dataset_for_cicd(cicd_config["artifact_path"], giskard_model, giskard_dataset)
