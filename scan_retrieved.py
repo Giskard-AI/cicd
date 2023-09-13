@@ -41,12 +41,12 @@ if __name__ == "__main__":
                                 "--dataset_split $dataset_split --dataset_config $dataset_config "
                                 "--output ${output_path}/${model_name}__default_scan_with__${dataset_name}.html")
 
-    check_exist_template = Template("${output_path}/${model_name}__default_scan_with__${dataset_name}.html")
+    result_path_template = Template("${output_path}/${model_name}__default_scan_with__${dataset_name}.${suffix}")
 
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    dataset_split_exceptions = { "facebook/bart-large-mnli": "validation_matched"}
+    dataset_split_exceptions = {"facebook/bart-large-mnli": "validation_matched"}
 
     dataset_config_exceptions = {"tweet_eval": "sentiment"}
 
@@ -64,9 +64,10 @@ if __name__ == "__main__":
 
         print(f"[{i}] ==== 🔍 scanning {message} ====")
 
-        result_path = check_exist_template.substitute(model_name=model.replace("/", "--"),
+        result_path = result_path_template.substitute(model_name=model.replace("/", "--"),
                                                       dataset_name=dataset.replace("/", "--"),
-                                                      output_path=args.output_path)
+                                                      output_path=args.output_path,
+                                                      suffix="html")
         if os.path.exists(result_path):
             answer = input(f"{result_path} already exists, Overwrite[o] or Skip[s]? ")
 
@@ -86,11 +87,21 @@ if __name__ == "__main__":
                                               output_path=args.output_path)
 
         try:
-            os.system(command)
+            os.system(command)  # call the cli script in order for try, except to work
+            new_row = pd.DataFrame({"model": model, "dataset": dataset, "status": "done"}, index=[0])
+            df_to_be_skipped = pd.concat([df_to_be_skipped, new_row], ignore_index=True)
+            df_to_be_skipped.to_csv(to_be_skipped_file_path, index=False)
         except Exception as e:
-            df_to_be_skipped.append({"model": model, "dataset": dataset, "status": "error"})
-            df_to_be_skipped.to_csv(to_be_skipped_file_path)
-            raise Exception(f"Something went wrong while {message}") from e
-        df_to_be_skipped.append({"model": model, "dataset": dataset, "status": "done"})
-        df_to_be_skipped.to_csv(to_be_skipped_file_path)
-
+            new_row = pd.DataFrame({"model": model, "dataset": dataset, "status": "error"}, index=[0])
+            df_to_be_skipped = pd.concat([df_to_be_skipped, new_row], ignore_index=True)
+            df_to_be_skipped.to_csv(to_be_skipped_file_path, index=False)
+            result_path = result_path_template.substitute(model_name=model.replace("/", "--"),
+                                                          dataset_name=dataset.replace("/", "--"),
+                                                          output_path=args.output_path,
+                                                          suffix="error")
+            with open(result_path, "w") as error_log:
+                error_log.write(e)
+            print(
+                f"Something went wrong while {message}, error is logged at {result_path}. "
+                "continuing with the next model...")
+            # raise Exception(f"Something went wrong while {message}") from e
