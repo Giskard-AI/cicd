@@ -34,15 +34,14 @@ if __name__ == "__main__":
 
     command_template = Template("python cli.py --loader huggingface --model $model --dataset $dataset "
                                 "--dataset_split $dataset_split --dataset_config $dataset_config "
-                                "--output ${output_path}/${model}__default_scan_with__${dataset}.html")
+                                "--output ${output_path}/${model_name}__default_scan_with__${dataset_name}.html")
 
-    check_exist_template = Template("${output_path}/${model}__default_scan_with__${dataset}.html")
+    check_exist_template = Template("${output_path}/${model_name}__default_scan_with__${dataset_name}.html")
 
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
     dataset_split_exceptions = { "facebook/bart-large-mnli" : "validation_matched"}
-
 
     dataset_config_exceptions = {"tweet_eval": "sentiment"}
 
@@ -53,7 +52,8 @@ if __name__ == "__main__":
 
         print(f"==== Scanning {model} with {dataset} ====")
 
-        result_path = check_exist_template.substitute(model=model, dataset=dataset,
+        result_path = check_exist_template.substitute(model_name=model.replace("/", "--"),
+                                                      dataset_name=dataset.replace("/", "--"),
                                                       output_path=args.output_path)
         if os.path.exists(result_path):
             answer = input(f"{result_path} already exists, Overwrite[o] or Skip[s]? ")
@@ -69,5 +69,7 @@ if __name__ == "__main__":
         command = command_template.substitute(model=model, dataset=dataset,
                                               dataset_split=dataset_split_exceptions.get(model, "validation"),
                                               dataset_config=dataset_config_exceptions.get(dataset, None),
+                                              model_name=model.replace("/", "--"),
+                                              dataset_name=dataset.replace("/", "--"),
                                               output_path=args.output_path)
         os.system(command)
