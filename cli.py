@@ -18,6 +18,7 @@ if __name__ == "__main__":
         "--dataset_split", help="The split of the dataset to use. If not provided, the best split will be selected."
     )
     parser.add_argument("--dataset_config", help="The name of the dataset config subset to use.")
+    parser.add_argument("--scan_config", help="Path to YAML file containing the configuration of the scan.")
     parser.add_argument("--output", help="Optional name of the output file.")
     parser.add_argument("--output_format", help="Format of the report (either HTML or markdown). Default is HTML.")
 
@@ -28,11 +29,12 @@ if __name__ == "__main__":
         "github": GithubLoader(),
     }
 
-    runner = PipelineRunner(loaders=supported_loaders, detectors=["robustness"])
+    runner = PipelineRunner(loaders=supported_loaders)
 
     runner_kwargs = {"loader_id": args.loader,
                      "model": args.model,
-                     "dataset": args.dataset}
+                     "dataset": args.dataset,
+                     "scan_config": args.scan_config}
 
     if args.loader == "huggingface":
         runner_kwargs.update({"dataset_split": args.dataset_split,

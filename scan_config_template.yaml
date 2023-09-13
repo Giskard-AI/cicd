@@ -1,0 +1,7 @@
+detectors:
+  - ethical_bias
+
+configuration:
+  ethical_bias:
+    threshold:
+      0.01
