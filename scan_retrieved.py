@@ -32,6 +32,11 @@ if __name__ == "__main__":
 
     df = pd.read_csv(args.data_path)
 
+    df_to_be_skipped = None
+    to_be_skipped_file_path = ".models_and_datasets_to_be_skipped.csv"
+    if os.path.exists(to_be_skipped_file_path):
+        df_to_be_skipped = pd.read_csv(to_be_skipped_file_path)
+
     command_template = Template("python cli.py --loader huggingface --model $model --dataset $dataset "
                                 "--dataset_split $dataset_split --dataset_config $dataset_config "
                                 "--output ${output_path}/${model_name}__default_scan_with__${dataset_name}.html")
@@ -41,7 +46,7 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    dataset_split_exceptions = { "facebook/bart-large-mnli" : "validation_matched"}
+    dataset_split_exceptions = { "facebook/bart-large-mnli": "validation_matched"}
 
     dataset_config_exceptions = {"tweet_eval": "sentiment"}
 
@@ -50,7 +55,14 @@ if __name__ == "__main__":
         model = row.modelId
         dataset = literal_eval(row.datasets)[0]
 
-        print(f"==== Scanning {model} with {dataset} ====")
+        message = f"{model} with {dataset}"
+
+        if ((df_to_be_skipped['model'] == model) & (df_to_be_skipped['dataset'] == dataset)).any() \
+                and df_to_be_skipped is not None:
+            print(f"[{i}] ==== ⏩ skipping {message} ====")
+            continue
+
+        print(f"[{i}] ==== 🔍 scanning {message} ====")
 
         result_path = check_exist_template.substitute(model_name=model.replace("/", "--"),
                                                       dataset_name=dataset.replace("/", "--"),
@@ -72,4 +84,13 @@ if __name__ == "__main__":
                                               model_name=model.replace("/", "--"),
                                               dataset_name=dataset.replace("/", "--"),
                                               output_path=args.output_path)
-        os.system(command)
+
+        try:
+            os.system(command)
+        except Exception as e:
+            df_to_be_skipped.append({"model": model, "dataset": dataset, "status": "error"})
+            df_to_be_skipped.to_csv(to_be_skipped_file_path)
+            raise Exception(f"Something went wrong while {message}") from e
+        df_to_be_skipped.append({"model": model, "dataset": dataset, "status": "done"})
+        df_to_be_skipped.to_csv(to_be_skipped_file_path)
+

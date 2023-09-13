@@ -1,0 +1,4 @@
+model,dataset,status
+facebook/bart-large-mnli,multi_nli,error
+distilbert-base-uncased-finetuned-sst-2-english,sst2,done
+cardiffnlp/twitter-roberta-base-sentiment-latest,tweet_eval,done
