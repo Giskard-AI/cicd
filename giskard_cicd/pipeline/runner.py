@@ -23,12 +23,13 @@ class PipelineRunner:
         loader = self.loaders[loader_id]
 
         # Get scan configuration
-        if kwargs["scan_config"] is not None:
-            with open(kwargs["scan_config"]) as yaml_f:
+        scan_config_path = kwargs.pop("scan_config", None)
+        params, detectors = None, None
+        if scan_config_path is not None:
+            with open(scan_config_path) as yaml_f:
                 scan_config = yaml.load(yaml_f, Loader=yaml.Loader)
             params = dict(scan_config.get("configuration", None))
             detectors = list(scan_config.get("detectors", None))
-        kwargs.pop("scan_config")
 
         # Load the model and dataset
         gsk_model, gsk_dataset = loader.load_giskard_model_dataset(**kwargs)
