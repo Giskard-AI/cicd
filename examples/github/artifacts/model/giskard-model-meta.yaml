@@ -1,0 +1,22 @@
+classification_labels:
+- 'no'
+- 'yes'
+feature_names:
+- PassengerId
+- Pclass
+- Name
+- Sex
+- Age
+- SibSp
+- Parch
+- Fare
+- Embarked
+id: ad8c1708-9232-48fc-ab98-7c2d7398e55e
+language: PYTHON
+language_version: 3.10.9
+loader_class: PredictionFunctionModel
+loader_module: giskard.models.function
+model_type: CLASSIFICATION
+name: Titanic model
+size: 0
+threshold: 0.5
