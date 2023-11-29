@@ -1,5 +1,6 @@
 import yaml
 import giskard as gsk
+import time
 
 
 class PipelineReport:
@@ -31,12 +32,16 @@ class PipelineRunner:
             params = dict(scan_config.get("configuration", None))
             detectors = list(scan_config.get("detectors", None))
 
+        start = time.time()
         # Load the model and dataset
         gsk_model, gsk_dataset = loader.load_giskard_model_dataset(**kwargs)
+        print(f"Loading took {time.time() - start:.2f}s")
 
+        start = time.time()
         # Run the scanner
         scan_result = gsk.scan(gsk_model, gsk_dataset, params=params, only=detectors)
-
+        print(f"Scanning took {time.time() - start:.2f}s")
+        
         # Report
         report = PipelineReport(scan_result)
 
