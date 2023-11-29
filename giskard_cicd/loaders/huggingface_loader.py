@@ -54,10 +54,18 @@ class HuggingFaceLoader(BaseLoader):
 
         df = self._flatten_hf_dataset(hf_dataset)
         df = pd.DataFrame(df).rename(columns={v: k for k, v in feature_mapping.items()})
+
+        # remove rows with multiple labels
+        # this is a hacky way to do it
+        # we do not support multi-label classification for now
+        df = df[df.apply(lambda row: len(row['label']) == 1, axis=1)]
+
         # @TODO: currently for classification models only.
         id2label = hf_model.model.config.id2label
         
         if df.label is not None and isinstance(df.label[0], list):
+            # need to include all labels
+            # rewrite this lambda function to include all labels
             df.label = df.label.apply(lambda x: id2label[x[0]])
         else:
             df["label"] = df.label.apply(lambda x: id2label[x])

@@ -53,7 +53,7 @@ if __name__ == "__main__":
             f.write(rendered_report)
     else:
         # To stdout
-        print(rendered_report)
+        # print(rendered_report)
         model_name = args.model.split("/")[-1]
         with open(f"{model_name}_report.html", "w") as f:
             f.write(rendered_report)
