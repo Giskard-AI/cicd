@@ -2,6 +2,7 @@
 
 import logging
 import time
+from typing import Dict
 
 import datasets
 import giskard as gsk
@@ -34,7 +35,7 @@ class HuggingFaceLoader(BaseLoader):
         dataset_id = model_card["datasets"][0]
         return dataset_id
 
-    def load_giskard_model_dataset(self, model, dataset=None, dataset_config=None, dataset_split=None):
+    def load_giskard_model_dataset(self, model, dataset=None, dataset_config=None, dataset_split=None, manual_feature_mapping: Dict[str, str]=None, classification_label_mapping: Dict[int, str]=None):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
             logger.debug("No dataset provided. Trying to get it from the model metadata.")
@@ -50,12 +51,15 @@ class HuggingFaceLoader(BaseLoader):
         hf_model = self.load_model(model)
 
         # Check that the dataset has the good feature names for the task.
-        feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
+        if manual_feature_mapping is not None:
+            feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
+        else:
+            feature_mapping = manual_feature_mapping
 
         df = hf_dataset.to_pandas().rename(columns={v: k for k, v in feature_mapping.items()})
 
         # @TODO: currently for classification models only.
-        id2label = hf_model.model.config.id2label
+        id2label = hf_model.model.config.id2label if classification_label_mapping is not None else classification_label_mapping
         df["label"] = df.label.apply(lambda x: id2label[x])
 
         gsk_dataset = gsk.Dataset(df, target="label", column_types={"text": "text"})
