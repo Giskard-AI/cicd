@@ -11,7 +11,7 @@ class PipelineReport:
         return self.scan_result.to_html()
 
     def to_markdown(self, template):
-        return self.scan_result.to_markdown(template="github")
+        return self.scan_result.to_markdown(template=template)
 
 
 class PipelineRunner:
