@@ -55,13 +55,14 @@ class HuggingFaceLoader(BaseLoader):
         df = self._flatten_hf_dataset(hf_dataset, dataset_split)
         df = pd.DataFrame(df).rename(columns={v: k for k, v in feature_mapping.items()})
 
-        # remove rows with multiple labels
+        # remove the rows have multiple labels
         # this is a hacky way to do it
         # we do not support multi-label classification for now
         if "label" in df and isinstance(df.label[0], list):
             df = df[df.apply(lambda row: len(row['label']) == 1, axis=1)]
-        else:
-            print(df)
+        
+        logger.debug(f"Overview of dataset: `{dataset}`.")
+
         # @TODO: currently for classification models only.
         id2label = hf_model.model.config.id2label
         
@@ -164,7 +165,6 @@ class HuggingFaceLoader(BaseLoader):
             raise NotImplementedError(msg)
 
         dataset_features = self._get_dataset_features(hf_dataset)
-        print(dataset_features)
         # map features
         feature_mapping = {}
         for f in set(dataset_features):
