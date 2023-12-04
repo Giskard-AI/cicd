@@ -61,9 +61,13 @@ if __name__ == "__main__":
     if args.output:
         with open(args.output, "w") as f:
             f.write(rendered_report)
-    else:
+    elif args.output_format == "markdown":
         # To stdout
-        # print(rendered_report)
+        print(rendered_report)
+        model_name = args.model.split("/")[-1]
+        with open(f"{model_name}_report.md", "w") as f:
+            f.write(rendered_report)
+    else:
         model_name = args.model.split("/")[-1]
         with open(f"{model_name}_report.html", "w") as f:
             f.write(rendered_report)
