@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     # In the future, write markdown report or directly push to discussion.
     if args.output_format == "markdown":
-        rendered_report = report.to_markdown(template="github")
+        rendered_report = report.to_markdown(template="huggingface")
     else:
         rendered_report = report.to_html()
 
