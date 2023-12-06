@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("--scan_config", help="Path to YAML file containing the configuration of the scan.")
     parser.add_argument("--output", help="Optional name of the output file.")
     parser.add_argument("--output_format", help="Format of the report (either HTML or markdown). Default is HTML.")
+    parser.add_argument("--hf_token", help="Give your hugging face token to use inference api.")
 
     args = parser.parse_args()
 
@@ -38,7 +39,8 @@ if __name__ == "__main__":
 
     if args.loader == "huggingface":
         runner_kwargs.update({"dataset_split": args.dataset_split,
-                              "dataset_config": args.dataset_config})
+                              "dataset_config": args.dataset_config,
+                              "hf_token": args.hf_token})
 
     report = runner.run(**runner_kwargs)
 
@@ -53,4 +55,5 @@ if __name__ == "__main__":
             f.write(rendered_report)
     else:
         # To stdout
-        print(rendered_report)
+        # print(rendered_report)
+        report.scan_result.print()

@@ -1,0 +1,13 @@
+detectors:
+  - ethical_bias
+  - text_perturbation
+  - robustness
+  - performance
+  - underconfidence
+  - overconfidence
+  - spurious_correlation
+
+configuration:
+  ethical_bias:
+    threshold:
+      0.01
