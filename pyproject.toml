@@ -1,3 +1,14 @@
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+[project]
+name = "giskard_cicd"
+readme = "README.md"
+dependencies = [
+    "datasets",
+    "giskard >= 2.0.0b",
+    "huggingface_hub",
+    "torch",
+    "transformers",
+]
+requires-python = ">=3.9"

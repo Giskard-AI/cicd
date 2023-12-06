@@ -1,5 +1,10 @@
 import yaml
 import giskard as gsk
+import time
+
+import logging
+
+logger = logging.getLogger(__file__)
 
 
 class PipelineReport:
@@ -10,7 +15,7 @@ class PipelineReport:
         return self.scan_result.to_html()
 
     def to_markdown(self, template):
-        return self.scan_result.to_markdown(template="github")
+        return self.scan_result.to_markdown(template=template)
 
 
 class PipelineRunner:
@@ -31,12 +36,16 @@ class PipelineRunner:
             params = dict(scan_config.get("configuration", None))
             detectors = list(scan_config.get("detectors", None))
 
+        start = time.time()
         # Load the model and dataset
         gsk_model, gsk_dataset = loader.load_giskard_model_dataset(**kwargs)
+        logger.info(f"Loading took {time.time() - start:.2f}s")
 
+        start = time.time()
         # Run the scanner
         scan_result = gsk.scan(gsk_model, gsk_dataset, params=params, only=detectors)
-
+        logger.info(f"Scanning took {time.time() - start:.2f}s")
+        
         # Report
         report = PipelineReport(scan_result)
 
