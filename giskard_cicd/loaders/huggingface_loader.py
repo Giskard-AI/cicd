@@ -45,6 +45,8 @@ class HuggingFaceLoader(BaseLoader):
         # So we start by trying to get the dataset, because if we fail, we don't
         # want to waste time downloading the model.
         hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model)
+        # Flatten dataset to avoid `datasets.DatasetDict`
+        hf_dataset = self._flatten_hf_dataset(hf_dataset, dataset_split)
 
         # Load the model.
         hf_model = self.load_model(model)
@@ -52,15 +54,14 @@ class HuggingFaceLoader(BaseLoader):
         # Check that the dataset has the good feature names for the task.
         feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
 
-        df = self._flatten_hf_dataset(hf_dataset, dataset_split)
-        df = pd.DataFrame(df).rename(columns={v: k for k, v in feature_mapping.items()})
+        df = hf_dataset.to_pandas().rename(columns={v: k for k, v in feature_mapping.items()})
 
         # remove the rows have multiple labels
         # this is a hacky way to do it
         # we do not support multi-label classification for now
         if "label" in df and isinstance(df.label[0], list):
             df = df[df.apply(lambda row: len(row['label']) == 1, axis=1)]
-        
+
         logger.debug(f"Overview of dataset: `{dataset}`.")
 
         # @TODO: currently for classification models only.
@@ -137,9 +138,13 @@ class HuggingFaceLoader(BaseLoader):
         '''
         flat_dataset = pd.DataFrame()
         if isinstance(hf_dataset, datasets.DatasetDict):
-            keys = list(hf_dataset.keys())
+            for k in hf_dataset.keys():
+                if data_split is not None and k == data_split:
+                    # Match the data split
+                    flat_dataset = hf_dataset[k]
+                    break
 
-            for k in keys:
+                # Otherwise infer one data split
                 if k.startswith("train"):
                     continue
                 elif k.startswith(data_split): 
