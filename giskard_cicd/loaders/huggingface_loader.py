@@ -94,7 +94,6 @@ class HuggingFaceLoader(BaseLoader):
         return gsk_model, gsk_dataset
 
     def load_dataset(self, dataset_id, dataset_config=None, dataset_split=None, model_id=None):
-        print(f"Loading dataset {dataset_id} with config {dataset_config} and split {dataset_split}")
         """Load a dataset from the HuggingFace Hub."""
         logger.debug(f"Trying to load dataset `{dataset_id}` (config = `{dataset_config}`, split = `{dataset_split}`).")
         try:
@@ -103,7 +102,7 @@ class HuggingFaceLoader(BaseLoader):
             hf_dataset = datasets.load_dataset(dataset_id, name=dataset_config)
             if dataset_split is None:
                 dataset_split = self._select_best_dataset_split(list(hf_dataset.keys()))
-                logger.debug(f"No split provided, automatically selected split = `{dataset_split}`).")
+                logger.info(f"No split provided, automatically selected split = `{dataset_split}`).")
                 hf_dataset = hf_dataset[dataset_split]
 
             return hf_dataset
@@ -127,7 +126,7 @@ class HuggingFaceLoader(BaseLoader):
             dataset_features = hf_dataset.features
             return dataset_features
         except AttributeError:
-            print("hf_dataset.features not found")
+            logger.warning("Features not found")
             if isinstance(hf_dataset, datasets.DatasetDict):
                 keys = list(hf_dataset.keys())
                 return self._get_dataset_features(hf_dataset[keys[0]])
@@ -165,7 +164,6 @@ class HuggingFaceLoader(BaseLoader):
         if isinstance(hf_model, TextClassificationPipeline):
             task_features = {"text": "string", "label": "class_label"}
         else:
-            print(type(hf_model))
             msg = "Unsupported model type."
             raise NotImplementedError(msg)
 
