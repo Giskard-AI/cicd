@@ -124,12 +124,12 @@ class HuggingFaceLoader(BaseLoader):
         dataset_features = {}
         try: 
             dataset_features = hf_dataset.features
-            return dataset_features
         except AttributeError:
             logger.warning("Features not found")
             if isinstance(hf_dataset, datasets.DatasetDict):
                 keys = list(hf_dataset.keys())
                 return self._get_dataset_features(hf_dataset[keys[0]])
+        return dataset_features
 
     def _flatten_hf_dataset(self, hf_dataset, data_split=None):
         '''
