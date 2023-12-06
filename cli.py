@@ -55,5 +55,4 @@ if __name__ == "__main__":
             f.write(rendered_report)
     else:
         # To stdout
-        # print(rendered_report)
-        report.scan_result.print()
+        print(rendered_report)
