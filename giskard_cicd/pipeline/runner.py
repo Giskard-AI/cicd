@@ -1,6 +1,7 @@
 import yaml
 import giskard as gsk
 
+
 class PipelineReport:
     def __init__(self, scan_result):
         self.scan_result = scan_result
@@ -32,9 +33,10 @@ class PipelineRunner:
 
         # Load the model and dataset
         gsk_model, gsk_dataset = loader.load_giskard_model_dataset(**kwargs)
-        
+
         # Run the scanner
         scan_result = gsk.scan(gsk_model, gsk_dataset, params=params, only=detectors)
+
         # Report
         report = PipelineReport(scan_result)
 
