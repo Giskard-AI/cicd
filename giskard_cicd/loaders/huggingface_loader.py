@@ -62,7 +62,7 @@ class HuggingFaceLoader(BaseLoader):
         hf_model = self.load_model(model)
 
         # Check that the dataset has the good feature names for the task.
-        if manual_feature_mapping is not None:
+        if manual_feature_mapping is None:
             feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
         else:
             feature_mapping = manual_feature_mapping
