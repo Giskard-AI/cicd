@@ -23,7 +23,7 @@ def extract_scores(data):
     
     return scores
 
-def predict_from_inference(df: pd.DataFrame, query) -> np.ndarray:
+def predict_from_text_classification_inference(df: pd.DataFrame, query) -> np.ndarray:
     results = []
     # get all text from the dataframe
     inputs = df["text"].tolist()
@@ -37,10 +37,19 @@ def predict_from_inference(df: pd.DataFrame, query) -> np.ndarray:
 
     return np.array(results)
 
-def classification_model_from_inference_api(model_name, labels, features, query):
+def classification_model_from_inference_api(model_name, labels, features, query, model_type="text_classification"):
     """Get a Giskard model from the HuggingFace inference API."""
+    if model_type == "text_classification":
+        def prediction(df: pd.DataFrame) -> np.ndarray:
+            return predict_from_text_classification_inference(df, query)
+    else:
+        raise NotImplementedError("Only text_classification models are supported for now.")
+    
+    if prediction is None:
+        raise ValueError("The prediction function is None. Please check your model name and the inference API.")
+    
     return Model(
-        model = lambda df: predict_from_inference(df, query),  # A prediction function that encapsulates all the data pre-processing steps and that
+        model = prediction,  # A prediction function that encapsulates all the data pre-processing steps and that
         model_type="classification",  # Either regression, classification or text_generation.
         name=model_name,  # Optional
         classification_labels=labels,  # Their order MUST be identical to the prediction_function's
