@@ -2,6 +2,7 @@
 
 import logging
 import time
+from typing import Dict
 
 import datasets
 import giskard as gsk
@@ -14,12 +15,12 @@ from transformers.pipelines import TextClassificationPipeline
 import requests
 
 from .huggingface_inf_model import classification_model_from_inference_api
+import pandas as pd
 from .base_loader import BaseLoader, DatasetError
 
 logger = logging.getLogger(__name__)
 
 class HuggingFaceLoader(BaseLoader):
-
     def __init__(self, device=None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -35,10 +36,21 @@ class HuggingFaceLoader(BaseLoader):
         dataset_id = model_card["datasets"][0]
         return dataset_id
 
-    def load_giskard_model_dataset(self, model, dataset=None, dataset_config=None, dataset_split=None, hf_token=None):
+    def load_giskard_model_dataset(
+        self,
+        model,
+        dataset=None,
+        dataset_config=None,
+        dataset_split=None,
+        manual_feature_mapping: Dict[str, str] = None,
+        classification_label_mapping: Dict[int, str] = None,
+        hf_token=None,
+    ):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
-            logger.debug("No dataset provided. Trying to get it from the model metadata.")
+            logger.debug(
+                "No dataset provided. Trying to get it from the model metadata."
+            )
             dataset = self._find_dataset_id_from_model(model)
             logger.debug(f"Found dataset `{dataset}`.")
 
@@ -46,20 +58,49 @@ class HuggingFaceLoader(BaseLoader):
         # So we start by trying to get the dataset, because if we fail, we don't
         # want to waste time downloading the model.
         hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model)
+        # Flatten dataset to avoid `datasets.DatasetDict`
+        hf_dataset = self._flatten_hf_dataset(hf_dataset, dataset_split)
 
         # Load the model.
         hf_model = self.load_model(model)
 
         # Check that the dataset has the good feature names for the task.
-        feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
+        if manual_feature_mapping is not None:
+            feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
+        else:
+            feature_mapping = manual_feature_mapping
 
-        df = hf_dataset.to_pandas().rename(columns={v: k for k, v in feature_mapping.items()})
+        df = hf_dataset.to_pandas().rename(
+            columns={v: k for k, v in feature_mapping.items()}
+        )
+
+        # remove the rows have multiple labels
+        # this is a hacky way to do it
+        # we do not support multi-label classification for now
+        if "label" in df and isinstance(df.label[0], list):
+            df = df[df.apply(lambda row: len(row["label"]) == 1, axis=1)]
+
+        logger.debug(f"Overview of dataset: `{dataset}`.")
 
         # @TODO: currently for classification models only.
-        id2label = hf_model.model.config.id2label
-        df["label"] = df.label.apply(lambda x: id2label[x])
+        id2label = (
+            hf_model.model.config.id2label
+            if classification_label_mapping is None
+            else classification_label_mapping
+        )
 
-        gsk_dataset = gsk.Dataset(df, target="label", column_types={"text": "text"})
+        if "label" in df and isinstance(df.label[0], list):
+            # need to include all labels
+            # rewrite this lambda function to include all labels
+            df.label = df.label.apply(lambda x: id2label[x[0]])
+        else:
+            # TODO: when the label for test is not provided, what do we do?
+            df["label"] = df.label.apply(lambda x: id2label[x] if x >= 0 else "-1")
+        # map the list of label ids to the list of labels
+        # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
+        gsk_dataset = gsk.Dataset(
+            df, target="label", column_types={"text": "text"}, validation=False
+        )
 
         gsk_model = self._get_gsk_model(
             hf_model, 
@@ -75,20 +116,29 @@ class HuggingFaceLoader(BaseLoader):
 
         return gsk_model, gsk_dataset
 
-    def load_dataset(self, dataset_id, dataset_config=None, dataset_split=None, model_id=None):
+    def load_dataset(
+        self, dataset_id, dataset_config=None, dataset_split=None, model_id=None
+    ):
         """Load a dataset from the HuggingFace Hub."""
-        logger.debug(f"Trying to load dataset `{dataset_id}` (config = `{dataset_config}`, split = `{dataset_split}`).")
+        logger.debug(
+            f"Trying to load dataset `{dataset_id}` (config = `{dataset_config}`, split = `{dataset_split}`)."
+        )
         try:
-            hf_dataset = datasets.load_dataset(dataset_id, name=dataset_config, split=dataset_split)
-
+            # we do not set the split here
+            # because we want to be able to select the best split later with preprocessing
+            hf_dataset = datasets.load_dataset(dataset_id, name=dataset_config)
             if dataset_split is None:
                 dataset_split = self._select_best_dataset_split(list(hf_dataset.keys()))
-                logger.debug(f"No split provided, automatically selected split = `{dataset_split}`).")
+                logger.info(
+                    f"No split provided, automatically selected split = `{dataset_split}`)."
+                )
                 hf_dataset = hf_dataset[dataset_split]
 
             return hf_dataset
         except ValueError as err:
-            msg = f"Could not load dataset `{dataset_id}` with config `{dataset_config}`."
+            msg = (
+                f"Could not load dataset `{dataset_id}` with config `{dataset_config}`."
+            )
             raise DatasetError(msg) from err
 
     def load_model(self, model_id):
@@ -126,6 +176,50 @@ class HuggingFaceLoader(BaseLoader):
 
             return classification_model_from_inference_api(model_name, labels, features, _query_for_inference)
 
+    def _get_dataset_features(self, hf_dataset):
+        """
+        Recursively get the features of the dataset
+        """
+        dataset_features = {}
+        try:
+            dataset_features = hf_dataset.features
+        except AttributeError:
+            logger.warning("Features not found")
+            if isinstance(hf_dataset, datasets.DatasetDict):
+                keys = list(hf_dataset.keys())
+                return self._get_dataset_features(hf_dataset[keys[0]])
+        return dataset_features
+
+    def _flatten_hf_dataset(self, hf_dataset, data_split=None):
+        """
+        Flatten the dataset to a pandas dataframe
+        """
+        flat_dataset = pd.DataFrame()
+        if isinstance(hf_dataset, datasets.DatasetDict):
+            keys = list(hf_dataset.keys())
+            for k in keys:
+                if data_split is not None and k == data_split:
+                    # Match the data split
+                    flat_dataset = hf_dataset[k]
+                    break
+
+                # Otherwise infer one data split
+                if k.startswith("train"):
+                    continue
+                elif k.startswith(data_split):
+                    # TODO: only support one split for now
+                    # Maybe we can merge all the datasets into one
+                    flat_dataset = hf_dataset[k]
+                    break
+                else:
+                    flat_dataset = hf_dataset[k]
+
+            # If there are only train datasets
+            if isinstance(flat_dataset, pd.DataFrame) and flat_dataset.empty:
+                flat_dataset = hf_dataset[keys[0]]
+
+        return flat_dataset
+
     def _get_feature_mapping(self, hf_model, hf_dataset):
         if isinstance(hf_model, TextClassificationPipeline):
             task_features = {"text": "string", "label": "class_label"}
@@ -133,22 +227,46 @@ class HuggingFaceLoader(BaseLoader):
             msg = "Unsupported model type."
             raise NotImplementedError(msg)
 
-        dataset_features = hf_dataset.features
-        feature_mapping = {f: f for f in set(task_features) & set(dataset_features)}
+        dataset_features = self._get_dataset_features(hf_dataset)
+        # map features
+        feature_mapping = {}
+        for f in set(dataset_features):
+            if f in task_features:
+                feature_mapping[f] = f
+            else:
+                for t in task_features:
+                    if f.startswith(t):
+                        feature_mapping[t] = f
 
+        if not set(task_features) - set(feature_mapping):
+            return feature_mapping
+        else:
+            # If not, we try to find a suitable mapping by matching types.
+            return self._amend_missing_features(
+                task_features, dataset_features, feature_mapping
+            )
+
+    def _amend_missing_features(self, task_features, dataset_features, feature_mapping):
+        """
+        Question: what is this code doing?
+        """
+        available_features = set(dataset_features) - set(feature_mapping)
         missing_features = set(task_features) - set(feature_mapping)
 
-        if not missing_features:
-            return feature_mapping
-
-        # If not, we try to find a suitable mapping by matching types.
-        available_features = set(dataset_features) - set(feature_mapping)
         for feature in missing_features:
             expected_type = task_features[feature]
             if expected_type == "class_label":
-                candidates = [f for f in available_features if isinstance(dataset_features[f], datasets.ClassLabel)]
+                candidates = [
+                    f
+                    for f in available_features
+                    if isinstance(dataset_features[f], datasets.ClassLabel)
+                ]
             else:
-                candidates = [f for f in available_features if dataset_features[f].dtype == expected_type]
+                candidates = [
+                    f
+                    for f in available_features
+                    if dataset_features[f].dtype == expected_type
+                ]
 
             # If we have more than one match, it`s not possible to know which one is the good one.
             if len(candidates) != 1:
@@ -157,7 +275,6 @@ class HuggingFaceLoader(BaseLoader):
 
             feature_mapping[feature] = candidates[0]
             available_features.remove(candidates[0])
-
         return feature_mapping
 
     def _select_best_dataset_split(self, split_names):
@@ -191,7 +308,9 @@ class HuggingFaceLoader(BaseLoader):
                 if num_runs == 0:
                     return model.batch_size // 2
 
-                ds_slice = dataset.slice(lambda df: df.sample(num_samples), row_level=False)
+                ds_slice = dataset.slice(
+                    lambda df: df.sample(num_samples), row_level=False
+                )
 
                 t_start = time.perf_counter_ns()
                 try:

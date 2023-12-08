@@ -87,9 +87,14 @@ Current implementation has two loaders:
   
 - The `huggingface` loader which can be run from the command line:
 
-  ```bash
-  $ python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --output demo_report.html
-  ```
+   ```bash
+   $ python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --output demo_report.html
+   ```
+
+- Automatically post to discussion area for a given repo
+   ```bash
+   $ python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --output_format markdown --output_portal huggingface --discussion_repo [REPO_ID] --hf_token [HF_TOKEN]
+   ```
 
   ```bash
   $   python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --scan_config [Path to scan_config.yaml] --hf_token [Huggingface Token]
