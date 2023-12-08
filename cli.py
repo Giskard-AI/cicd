@@ -1,4 +1,5 @@
 import argparse
+import json
 
 from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
@@ -7,7 +8,8 @@ from automation import create_discussion
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="Giskard Scanner", description="Scans a model for vulnerabilities and produces a report."
+        prog="Giskard Scanner",
+        description="Scans a model for vulnerabilities and produces a report.",
     )
     parser.add_argument(
         "--loader",
@@ -15,15 +17,35 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument("--model", help="The model to scan.", required=True)
-    parser.add_argument("--dataset", help="The validation or test dataset that will be used.")
     parser.add_argument(
-        "--dataset_split", help="The split of the dataset to use. If not provided, the best split will be selected."
+        "--dataset", help="The validation or test dataset that will be used."
     )
-    parser.add_argument("--dataset_config", help="The name of the dataset config subset to use.")
-    parser.add_argument("--scan_config", help="Path to YAML file containing the configuration of the scan.")
+    parser.add_argument(
+        "--dataset_split",
+        help="The split of the dataset to use. If not provided, the best split will be selected.",
+    )
+    parser.add_argument(
+        "--dataset_config", help="The name of the dataset config subset to use."
+    )
+    parser.add_argument(
+        "--feature_mapping", help="The feature mapping from dataset to model input."
+    )
+    parser.add_argument(
+        "--label_mapping", help="The label mapping from dataset to model input."
+    )
+    parser.add_argument(
+        "--scan_config",
+        help="Path to YAML file containing the configuration of the scan.",
+    )
     parser.add_argument("--output", help="Optional name of the output file.")
-    parser.add_argument("--output_format", help="Format of the report (either HTML or markdown). Default is HTML.")
-    parser.add_argument("--output_portal", help="The output portal of the report (either huggingface or local directory). Default is local.")
+    parser.add_argument(
+        "--output_format",
+        help="Format of the report (either HTML or markdown). Default is HTML.",
+    )
+    parser.add_argument(
+        "--output_portal",
+        help="The output portal of the report (either huggingface or local directory). Default is local.",
+    )
     parser.add_argument("--discussion_repo", help="The repo to push the report to.")
     parser.add_argument("--hf_token", help="The token to push the report to the repo.")
 
@@ -36,14 +58,27 @@ if __name__ == "__main__":
 
     runner = PipelineRunner(loaders=supported_loaders)
 
-    runner_kwargs = {"loader_id": args.loader,
-                     "model": args.model,
-                     "dataset": args.dataset,
-                     "scan_config": args.scan_config}
+    runner_kwargs = {
+        "loader_id": args.loader,
+        "model": args.model,
+        "dataset": args.dataset,
+        "scan_config": args.scan_config,
+    }
 
     if args.loader == "huggingface":
-        runner_kwargs.update({"dataset_split": args.dataset_split,
-                              "dataset_config": args.dataset_config})
+        runner_kwargs.update(
+            {"dataset_split": args.dataset_split, "dataset_config": args.dataset_config}
+        )
+        try:
+            feature_mapping = json.loads(args.feature_mapping)
+        except Exception:
+            feature_mapping = None
+        try:
+            label_mapping = json.loads(args.label_mapping)
+        except Exception:
+            label_mapping = None
+        runner_kwargs.update({"manual_feature_mapping": feature_mapping})
+        runner_kwargs.update({"classification_label_mapping": label_mapping})
 
     report = runner.run(**runner_kwargs)
 
@@ -52,11 +87,12 @@ if __name__ == "__main__":
         rendered_report = report.to_markdown(template="github")
     else:
         rendered_report = report.to_html()
-    
+
     if args.output_portal == "huggingface":
         # Push to discussion
-        create_discussion(args.discussion_repo, args.model, args.hf_token, rendered_report)
-
+        create_discussion(
+            args.discussion_repo, args.model, args.hf_token, rendered_report
+        )
 
     if args.output:
         with open(args.output, "w") as f:
