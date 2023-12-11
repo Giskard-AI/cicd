@@ -67,7 +67,11 @@ if __name__ == "__main__":
 
     if args.loader == "huggingface":
         runner_kwargs.update(
-            {"dataset_split": args.dataset_split, "dataset_config": args.dataset_config, "hf_token": args.hf_token}
+            {
+                "dataset_split": args.dataset_split,
+                "dataset_config": args.dataset_config,
+                "hf_token": args.hf_token,
+            }
         )
         try:
             feature_mapping = json.loads(args.feature_mapping)
@@ -94,8 +98,15 @@ if __name__ == "__main__":
 
     if args.output_portal == "huggingface":
         # Push to discussion
+        # FIXME: dataset config and dataset split might have been inferred
         create_discussion(
-            args.discussion_repo, args.model, args.hf_token, rendered_report
+            args.discussion_repo,
+            args.model,
+            args.hf_token,
+            rendered_report,
+            args.dataset,
+            args.dataset_config,
+            args.dataset_split,
         )
 
     if args.output:
