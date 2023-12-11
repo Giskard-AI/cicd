@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     if args.loader == "huggingface":
         runner_kwargs.update(
-            {"dataset_split": args.dataset_split, "dataset_config": args.dataset_config}
+            {"dataset_split": args.dataset_split, "dataset_config": args.dataset_config, "hf_token": args.hf_token}
         )
         try:
             feature_mapping = json.loads(args.feature_mapping)

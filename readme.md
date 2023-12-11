@@ -96,4 +96,8 @@ Current implementation has two loaders:
    $ python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --output_format markdown --output_portal huggingface --discussion_repo [REPO_ID] --hf_token [HF_TOKEN]
    ```
 
+  ```bash
+  $   python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --scan_config [Path to scan_config.yaml] --hf_token [Huggingface Token]
+  ```
+
 This will launch a pipeline that will load the model and dataset from the HuggingFace hub, run the scan and generate a report in HTML format (for now).

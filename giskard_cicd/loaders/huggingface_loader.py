@@ -12,11 +12,13 @@ from giskard import Dataset
 from giskard.models.base import BaseModel
 from giskard.models.huggingface import HuggingFaceModel
 from transformers.pipelines import TextClassificationPipeline
+import requests
+
+from .huggingface_inf_model import classification_model_from_inference_api
 import pandas as pd
 from .base_loader import BaseLoader, DatasetError
 
 logger = logging.getLogger(__name__)
-
 
 class HuggingFaceLoader(BaseLoader):
     def __init__(self, device=None):
@@ -42,6 +44,7 @@ class HuggingFaceLoader(BaseLoader):
         dataset_split=None,
         manual_feature_mapping: Dict[str, str] = None,
         classification_label_mapping: Dict[int, str] = None,
+        hf_token=None,
     ):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
@@ -62,7 +65,7 @@ class HuggingFaceLoader(BaseLoader):
         hf_model = self.load_model(model)
 
         # Check that the dataset has the good feature names for the task.
-        if manual_feature_mapping is not None:
+        if manual_feature_mapping is None:
             feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
         else:
             feature_mapping = manual_feature_mapping
@@ -99,14 +102,13 @@ class HuggingFaceLoader(BaseLoader):
             df, target="label", column_types={"text": "text"}, validation=False
         )
 
-        gsk_model = HuggingFaceModel(
-            hf_model,
-            model_type="classification",
-            data_preprocessing_function=lambda df: df.text.tolist(),
-            classification_labels=[id2label[i] for i in range(len(id2label))],
-            batch_size=None,
-            device=self.device,
-        )
+        gsk_model = self._get_gsk_model(
+            hf_model, 
+            [id2label[i] for i in range(len(id2label))], 
+            self.device, 
+            model_type="hf_inference_api",
+            features=feature_mapping,
+            hf_token=hf_token)
 
         # Optimize batch size
         if self.device.startswith("cuda"):
@@ -145,6 +147,34 @@ class HuggingFaceLoader(BaseLoader):
         task = huggingface_hub.model_info(model_id).pipeline_tag
 
         return pipeline(task=task, model=model_id, device=self.device)
+    
+    def _get_gsk_model(self, hf_model, labels, device, model_type="hf_pipeline", features=None, hf_token=None):
+        if model_type == "hf_pipeline":
+            return HuggingFaceModel(
+                hf_model,
+                model_type="classification",
+                data_preprocessing_function=lambda df: df.text.tolist(),
+                classification_labels=labels,
+                batch_size=None,
+                device=device,
+            )
+        elif model_type == "hf_inference_api":
+
+            if features is None:
+                raise ValueError("features must be provided when using model_type='hf_inference_api'")
+
+            if hf_token is None:
+                raise ValueError("hf_token must be provided when using model_type='hf_inference_api'")
+
+            model_name = hf_model.model.config._name_or_path
+
+            def _query_for_inference(payload):
+                url = f"https://api-inference.huggingface.co/models/{model_name}"
+                headers = {"Authorization": f"Bearer {hf_token}"}
+                response = requests.post(url, headers=headers, json=payload)
+                return response.json()
+
+            return classification_model_from_inference_api(model_name, labels, features, _query_for_inference)
 
     def _get_dataset_features(self, hf_dataset):
         """
