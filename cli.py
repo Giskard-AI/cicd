@@ -88,7 +88,9 @@ if __name__ == "__main__":
 
     # In the future, write markdown report or directly push to discussion.
     if args.output_format == "markdown":
-        rendered_report = report.to_markdown(template="huggingface")
+        # TODO: Use HF template after next Giskard release
+        # rendered_report = report.to_markdown(template="huggingface")
+        rendered_report = report.to_markdown(template="github")
     else:
         rendered_report = report.to_html()
 
