@@ -79,6 +79,8 @@ if __name__ == "__main__":
             feature_mapping = None
         try:
             label_mapping = json.loads(args.label_mapping)
+            # Update labels to have integer index, which is not allowed in JSON
+            label_mapping = {int(k): v for k, v in label_mapping.items()}
         except Exception:
             label_mapping = None
         runner_kwargs.update({"manual_feature_mapping": feature_mapping})
