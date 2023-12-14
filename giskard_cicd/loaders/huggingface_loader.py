@@ -136,7 +136,12 @@ class HuggingFaceLoader(BaseLoader):
             # we do not set the split here
             # because we want to be able to select the best split later with preprocessing
             hf_dataset = datasets.load_dataset(dataset_id, name=dataset_config)
-            logger.debug(f"Loaded dataset with {hf_dataset.size_in_bytes} bytes")
+
+            if isinstance(hf_dataset, datasets.Dataset):
+                logger.debug(f"Loaded dataset with {hf_dataset.size_in_bytes} bytes")
+            else:
+                logger.debug("Loaded dataset is a DatasetDict")
+
             if dataset_split is None:
                 dataset_split = self._select_best_dataset_split(list(hf_dataset.keys()))
                 logger.info(
