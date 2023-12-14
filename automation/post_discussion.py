@@ -2,8 +2,10 @@ import huggingface_hub as hf_hub
 import markdown
 
 
-def construct_post_content(report, dataset_id, dataset_config, dataset_split):
-    vulnerability_count = len(report.issues)
+def construct_post_content(
+    report, dataset_id, dataset_config, dataset_split, scan_report
+):
+    vulnerability_count = len(scan_report.issues)
 
     # Construct the content of the post
     opening = """
@@ -39,10 +41,17 @@ def save_post(report_path, path, dataset_id, dataset_config, dataset_split):
 
 
 def create_discussion(
-    repo_id, model_name, hf_token, report, dataset_id, dataset_config, dataset_split
+    repo_id,
+    model_name,
+    hf_token,
+    report,
+    dataset_id,
+    dataset_config,
+    dataset_split,
+    scan_report,
 ):
     description = construct_post_content(
-        report, dataset_id, dataset_config, dataset_split
+        report, dataset_id, dataset_config, dataset_split, scan_report
     )
     # Create a discussion
     discussion = hf_hub.create_discussion(

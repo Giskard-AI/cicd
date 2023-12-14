@@ -134,6 +134,7 @@ if __name__ == "__main__":
             args.dataset,
             args.dataset_config,
             args.dataset_split,
+            report,
         )
 
     if args.output:
