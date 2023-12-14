@@ -1,5 +1,7 @@
 import argparse
 import json
+import pickle
+import uuid
 
 from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
@@ -49,6 +51,10 @@ if __name__ == "__main__":
     parser.add_argument("--discussion_repo", help="The repo to push the report to.")
     parser.add_argument("--hf_token", help="The token to push the report to the repo.")
 
+    parser.add_argument(
+        "--persistent_scan", help="Persistent scan report.", type=bool, default=False
+    )
+
     args = parser.parse_args()
 
     supported_loaders = {
@@ -87,6 +93,21 @@ if __name__ == "__main__":
         runner_kwargs.update({"classification_label_mapping": label_mapping})
 
     report = runner.run(**runner_kwargs)
+
+    if args.persistent_scan:
+        run_args = [
+            args.model,
+            args.dataset,
+            args.dataset_config,
+            args.dataset_split,
+            args.feature_mapping,
+            args.label_mapping,
+        ]
+        run_info = "+".join(filter(lambda x: x is not None, run_args))
+        fn = f"{str(uuid.uuid5(uuid.NAMESPACE_OID, run_info))}.pkl"
+        with open(fn, "wb") as f:
+            pickle.dump(report, f)
+        print(f"Scan report persisted in {fn}")
 
     # In the future, write markdown report or directly push to discussion.
     if args.output_format == "markdown":
