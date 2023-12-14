@@ -62,6 +62,11 @@ class HuggingFaceLoader(BaseLoader):
         # Flatten dataset to avoid `datasets.DatasetDict`
         hf_dataset = self._flatten_hf_dataset(hf_dataset, dataset_split)
 
+        if isinstance(hf_dataset, datasets.Dataset):
+            logger.debug(f"Loaded dataset with {hf_dataset.size_in_bytes} bytes")
+        else:
+            logger.warning("Loaded dataset is not a Dataset object, the scan may fail.")
+
         # Load the model.
         hf_model = self.load_model(model)
 
