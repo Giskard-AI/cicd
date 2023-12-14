@@ -2,11 +2,16 @@ import argparse
 import json
 import pickle
 import uuid
+import logging
 
 from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
 
 from automation import create_discussion
+
+
+logger = logging.getLogger(__file__)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -92,6 +97,9 @@ if __name__ == "__main__":
         runner_kwargs.update({"manual_feature_mapping": feature_mapping})
         runner_kwargs.update({"classification_label_mapping": label_mapping})
 
+    logger.info(
+        f'Running scanner with {runner_kwargs} to evaluate "{args.model}" model'
+    )
     report = runner.run(**runner_kwargs)
 
     if args.persistent_scan:
