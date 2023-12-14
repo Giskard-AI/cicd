@@ -6,7 +6,7 @@ name = "giskard_cicd"
 readme = "README.md"
 dependencies = [
     "datasets",
-    "giskard >= 2.0.0b",
+    "giskard >= 2.1.0",
     "huggingface_hub",
     "torch",
     "transformers",
