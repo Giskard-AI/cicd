@@ -1,10 +1,17 @@
 import argparse
 import json
+import pickle
+import uuid
+import logging
 
 from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
 
 from automation import create_discussion
+
+
+logger = logging.getLogger(__file__)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -49,6 +56,10 @@ if __name__ == "__main__":
     parser.add_argument("--discussion_repo", help="The repo to push the report to.")
     parser.add_argument("--hf_token", help="The token to push the report to the repo.")
 
+    parser.add_argument(
+        "--persistent_scan", help="Persistent scan report.", type=bool, default=False
+    )
+
     args = parser.parse_args()
 
     supported_loaders = {
@@ -80,21 +91,35 @@ if __name__ == "__main__":
         try:
             label_mapping = json.loads(args.label_mapping)
             # Update labels to have integer index, which is not allowed in JSON
-            label_mapping = {
-                int(k): v for k, v in label_mapping.items()
-            }
-        except Exception as e:
+            label_mapping = {int(k): v for k, v in label_mapping.items()}
+        except Exception:
             label_mapping = None
         runner_kwargs.update({"manual_feature_mapping": feature_mapping})
         runner_kwargs.update({"classification_label_mapping": label_mapping})
 
+    logger.info(
+        f'Running scanner with {runner_kwargs} to evaluate "{args.model}" model'
+    )
     report = runner.run(**runner_kwargs)
+
+    if args.persistent_scan:
+        run_args = [
+            args.model,
+            args.dataset,
+            args.dataset_config,
+            args.dataset_split,
+            args.feature_mapping,
+            args.label_mapping,
+        ]
+        run_info = "+".join(filter(lambda x: x is not None, run_args))
+        fn = f"{str(uuid.uuid5(uuid.NAMESPACE_OID, run_info))}.pkl"
+        with open(fn, "wb") as f:
+            pickle.dump(report, f)
+        print(f"Scan report persisted in {fn}")
 
     # In the future, write markdown report or directly push to discussion.
     if args.output_format == "markdown":
-        # TODO: Use HF template after next Giskard release
-        # rendered_report = report.to_markdown(template="huggingface")
-        rendered_report = report.to_markdown(template="github")
+        rendered_report = report.to_markdown(template="huggingface")
     else:
         rendered_report = report.to_html()
 
@@ -109,6 +134,7 @@ if __name__ == "__main__":
             args.dataset,
             args.dataset_config,
             args.dataset_split,
+            report,
         )
 
     if args.output:

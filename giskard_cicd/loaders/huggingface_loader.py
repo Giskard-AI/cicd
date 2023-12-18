@@ -18,7 +18,8 @@ from .huggingface_inf_model import classification_model_from_inference_api
 import pandas as pd
 from .base_loader import BaseLoader, DatasetError
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__file__)
+
 
 class HuggingFaceLoader(BaseLoader):
     def __init__(self, device=None):
@@ -61,12 +62,21 @@ class HuggingFaceLoader(BaseLoader):
         # Flatten dataset to avoid `datasets.DatasetDict`
         hf_dataset = self._flatten_hf_dataset(hf_dataset, dataset_split)
 
+        if isinstance(hf_dataset, datasets.Dataset):
+            logger.debug(f"Loaded dataset with {hf_dataset.size_in_bytes} bytes")
+        else:
+            logger.warning("Loaded dataset is not a Dataset object, the scan may fail.")
+
         # Load the model.
         hf_model = self.load_model(model)
 
         # Check that the dataset has the good feature names for the task.
+        logger.debug("Retrieving feature mapping")
         if manual_feature_mapping is None:
             feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
+            logger.warn(
+                f'Feature mapping is not provided, using extracted "{feature_mapping}"'
+            )
         else:
             feature_mapping = manual_feature_mapping
 
@@ -83,11 +93,12 @@ class HuggingFaceLoader(BaseLoader):
         logger.debug(f"Overview of dataset: `{dataset}`.")
 
         # @TODO: currently for classification models only.
-        id2label = (
-            hf_model.model.config.id2label
-            if classification_label_mapping is None
-            else classification_label_mapping
-        )
+        logger.debug("Retrieving classification label mapping")
+        if classification_label_mapping is None:
+            id2label = hf_model.model.config.id2label
+            logger.warn(f'Label mapping is not provided, using "{id2label}" from model')
+        else:
+            id2label = classification_label_mapping
 
         if "label" in df and isinstance(df.label[0], list):
             # need to include all labels
@@ -98,17 +109,20 @@ class HuggingFaceLoader(BaseLoader):
             df["label"] = df.label.apply(lambda x: id2label[x] if x >= 0 else "-1")
         # map the list of label ids to the list of labels
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
+        logger.debug("Wrapping dataset")
         gsk_dataset = gsk.Dataset(
             df, target="label", column_types={"text": "text"}, validation=False
         )
 
+        logger.debug("Wrapping model")
         gsk_model = self._get_gsk_model(
-            hf_model, 
-            [id2label[i] for i in range(len(id2label))], 
-            self.device, 
+            hf_model,
+            [id2label[i] for i in range(len(id2label))],
+            self.device,
             model_type="hf_inference_api",
             features=feature_mapping,
-            hf_token=hf_token)
+            hf_token=hf_token,
+        )
 
         # Optimize batch size
         if self.device.startswith("cuda"):
@@ -127,6 +141,12 @@ class HuggingFaceLoader(BaseLoader):
             # we do not set the split here
             # because we want to be able to select the best split later with preprocessing
             hf_dataset = datasets.load_dataset(dataset_id, name=dataset_config)
+
+            if isinstance(hf_dataset, datasets.Dataset):
+                logger.debug(f"Loaded dataset with {hf_dataset.size_in_bytes} bytes")
+            else:
+                logger.debug("Loaded dataset is a DatasetDict")
+
             if dataset_split is None:
                 dataset_split = self._select_best_dataset_split(list(hf_dataset.keys()))
                 logger.info(
@@ -147,8 +167,16 @@ class HuggingFaceLoader(BaseLoader):
         task = huggingface_hub.model_info(model_id).pipeline_tag
 
         return pipeline(task=task, model=model_id, device=self.device)
-    
-    def _get_gsk_model(self, hf_model, labels, device, model_type="hf_pipeline", features=None, hf_token=None):
+
+    def _get_gsk_model(
+        self,
+        hf_model,
+        labels,
+        device,
+        model_type="hf_pipeline",
+        features=None,
+        hf_token=None,
+    ):
         if model_type == "hf_pipeline":
             return HuggingFaceModel(
                 hf_model,
@@ -159,12 +187,15 @@ class HuggingFaceLoader(BaseLoader):
                 device=device,
             )
         elif model_type == "hf_inference_api":
-
             if features is None:
-                raise ValueError("features must be provided when using model_type='hf_inference_api'")
+                raise ValueError(
+                    "features must be provided when using model_type='hf_inference_api'"
+                )
 
             if hf_token is None:
-                raise ValueError("hf_token must be provided when using model_type='hf_inference_api'")
+                raise ValueError(
+                    "hf_token must be provided when using model_type='hf_inference_api'"
+                )
 
             model_name = hf_model.model.config._name_or_path
 
@@ -174,7 +205,9 @@ class HuggingFaceLoader(BaseLoader):
                 response = requests.post(url, headers=headers, json=payload)
                 return response.json()
 
-            return classification_model_from_inference_api(model_name, labels, features, _query_for_inference)
+            return classification_model_from_inference_api(
+                model_name, labels, features, _query_for_inference
+            )
 
     def _get_dataset_features(self, hf_dataset):
         """

@@ -2,19 +2,21 @@ import huggingface_hub as hf_hub
 import markdown
 
 
-def construct_post_content(report, dataset_id, dataset_config, dataset_split):
-    vulnerability_count = len(report.issues)
+def construct_post_content(
+    report, dataset_id, dataset_config, dataset_split, scan_report
+):
+    vulnerability_count = len(scan_report.scan_result.issues)
 
     # Construct the content of the post
     opening = """
     \nHey Team!🤗✨ <br />We’re thrilled to share some amazing evaluation results that’ll make your day!🎉📊<br />
     """
     opening += f"""
-    We have identified {vulnerability_count} potential vulnerabilities in your model based on an automated scan.
+\nWe have identified {vulnerability_count} potential vulnerabilities in your model based on an automated scan.
     """
     if dataset_id is not None:
         opening += f"""
-        This automated analysis evaluated the model on the dataset {dataset_id} (subset `{dataset_config}`, split `{dataset_split}`).
+\nThis automated analysis evaluated the model on the dataset {dataset_id} (subset `{dataset_config}`, split `{dataset_split}`).
         """
     disclaimer = """
     \n\n**Disclaimer**: it's important to note that automated scans may produce false positives or miss certain vulnerabilities. We encourage you to review the findings and assess the impact accordingly.\n
@@ -39,10 +41,17 @@ def save_post(report_path, path, dataset_id, dataset_config, dataset_split):
 
 
 def create_discussion(
-    repo_id, model_name, hf_token, report, dataset_id, dataset_config, dataset_split
+    repo_id,
+    model_name,
+    hf_token,
+    report,
+    dataset_id,
+    dataset_config,
+    dataset_split,
+    scan_report,
 ):
     description = construct_post_content(
-        report, dataset_id, dataset_config, dataset_split
+        report, dataset_id, dataset_config, dataset_split, scan_report
     )
     # Create a discussion
     discussion = hf_hub.create_discussion(
