@@ -12,5 +12,4 @@ configuration:
     threshold:
       0.01
 
-inference_type:
-  - hf_pipeline
+inference_type: hf_pipeline
