@@ -46,6 +46,7 @@ class HuggingFaceLoader(BaseLoader):
         manual_feature_mapping: Dict[str, str] = None,
         classification_label_mapping: Dict[int, str] = None,
         hf_token=None,
+        model_type="hf_inference_api",
     ):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
@@ -119,10 +120,11 @@ class HuggingFaceLoader(BaseLoader):
             hf_model,
             [id2label[i] for i in range(len(id2label))],
             self.device,
-            model_type="hf_inference_api",
+            model_type=model_type,
             features=feature_mapping,
             hf_token=hf_token,
         )
+        print('giskard model >>>>',gsk_model)
 
         # Optimize batch size
         if self.device.startswith("cuda"):
