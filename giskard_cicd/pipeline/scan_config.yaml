@@ -11,3 +11,5 @@ configuration:
   ethical_bias:
     threshold:
       0.01
+
+inference_type: hf_pipeline
