@@ -46,7 +46,7 @@ class HuggingFaceLoader(BaseLoader):
         manual_feature_mapping: Dict[str, str] = None,
         classification_label_mapping: Dict[int, str] = None,
         hf_token=None,
-        model_type="hf_inference_api",
+        inference_type="hf_pipeline",
     ):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
@@ -116,14 +116,15 @@ class HuggingFaceLoader(BaseLoader):
         )
 
         logger.debug("Wrapping model")
+
         gsk_model = self._get_gsk_model(
             hf_model,
             [id2label[i] for i in range(len(id2label))],
-            self.device,
-            model_type=model_type,
             features=feature_mapping,
+            inference_type=inference_type,
+            device=self.device,
             hf_token=hf_token,
-        )
+            )
         print('giskard model >>>>',gsk_model)
 
         # Optimize batch size
@@ -174,12 +175,13 @@ class HuggingFaceLoader(BaseLoader):
         self,
         hf_model,
         labels,
-        device,
-        model_type="hf_pipeline",
         features=None,
+        inference_type="hf_inference_api",
+        device=None,
         hf_token=None,
     ):
-        if model_type == "hf_pipeline":
+        model_name = hf_model.model.config._name_or_path
+        if inference_type == "hf_pipeline":
             return HuggingFaceModel(
                 hf_model,
                 model_type="classification",
@@ -188,7 +190,7 @@ class HuggingFaceLoader(BaseLoader):
                 batch_size=None,
                 device=device,
             )
-        elif model_type == "hf_inference_api":
+        elif inference_type == "hf_inference_api":
             if features is None:
                 raise ValueError(
                     "features must be provided when using model_type='hf_inference_api'"
@@ -198,9 +200,7 @@ class HuggingFaceLoader(BaseLoader):
                 raise ValueError(
                     "hf_token must be provided when using model_type='hf_inference_api'"
                 )
-
-            model_name = hf_model.model.config._name_or_path
-
+            
             def _query_for_inference(payload):
                 url = f"https://api-inference.huggingface.co/models/{model_name}"
                 headers = {"Authorization": f"Bearer {hf_token}"}

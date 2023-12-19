@@ -35,7 +35,7 @@ class PipelineRunner:
                 scan_config = yaml.load(yaml_f, Loader=yaml.Loader)
             params = dict(scan_config.get("configuration", None))
             detectors = list(scan_config.get("detectors", None))
-            kwargs.update({"model_type": list(scan_config.get("model_type", None))})
+            kwargs.update({"inference_type": list(scan_config.get("inference_type", None))[0]})
 
         start = time.time()
         # Load the model and dataset
