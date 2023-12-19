@@ -125,7 +125,6 @@ class HuggingFaceLoader(BaseLoader):
             device=self.device,
             hf_token=hf_token,
             )
-        print('giskard model >>>>',gsk_model)
 
         # Optimize batch size
         if self.device.startswith("cuda"):
