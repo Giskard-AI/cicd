@@ -33,8 +33,8 @@ class PipelineRunner:
         if scan_config_path is not None:
             with open(scan_config_path) as yaml_f:
                 scan_config = yaml.load(yaml_f, Loader=yaml.Loader)
-            params = dict(scan_config.get("configuration", {}))
-            detectors = list(scan_config.get("detectors"))
+            params = dict(scan_config.get("configuration") or dict())
+            detectors = list(scan_config.get("detectors") or [])
             kwargs.update({"inference_type": scan_config.get("inference_type", "hf_inference_api")})
 
         start = time.time()
