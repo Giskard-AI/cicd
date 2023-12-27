@@ -103,6 +103,7 @@ if __name__ == "__main__":
     report = runner.run(**runner_kwargs)
 
     if args.persistent_scan:
+        # Generate a UUID from run info
         run_args = [
             args.model,
             args.dataset,
@@ -113,8 +114,22 @@ if __name__ == "__main__":
         ]
         run_info = "+".join(filter(lambda x: x is not None, run_args))
         fn = f"{str(uuid.uuid5(uuid.NAMESPACE_OID, run_info))}.pkl"
+
+        # Some of the properties are not pickle, retrieve the necessary info from issues
+        scan_report = report.scan_result
+        issues = []
+        for issue in scan_report.issues:
+            simple_issue = issue.copy()
+
+            # Clean up issues
+            simple_issue.model = None
+            simple_issue.dataset = None
+
+            issues.append(simple_issue)
+
+        # Persist the issues
         with open(fn, "wb") as f:
-            pickle.dump(report, f)
+            pickle.dump(issues, f)
         print(f"Scan report persisted in {fn}")
 
     # In the future, write markdown report or directly push to discussion.
