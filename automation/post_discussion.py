@@ -53,9 +53,6 @@ def save_post(report_path, path, dataset_id, dataset_config, dataset_split):
     with open(path, "w") as f:
         f.write(post)
 
-'''
-Separate report into comments
-'''
 def separate_report_by_issues(report):
     issues_titles = [
         "Robustness", 
@@ -71,14 +68,11 @@ def separate_report_by_issues(report):
         "Hallucination and Misinformation",
         "Sensitive Information Disclosure",
         "Output Formatting"]
-    # r"\W(?=)
+    # TODO: add markdown comments to the report as a split marker
     regex = "\W(?=" + '|'.join(["<details>\n<summary>👉" + issue for issue in issues_titles]) + ")"
     sub_reports = re.split(regex, report)
     return sub_reports
 
-'''
-post each issue as a comment
-'''
 def post_issue_as_comment(discussion, issue, token, repo_id):
     comment = hf_hub.comment_discussion(
         repo_id=repo_id,
@@ -128,7 +122,6 @@ def create_discussion(
         report, dataset_id, dataset_config, dataset_split, scan_report
     )
 
-    # Create a discussion
     discussion = hf_hub.create_discussion(
         repo_id,
         title=f"Report for {model_name}",
