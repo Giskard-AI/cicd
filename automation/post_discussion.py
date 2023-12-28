@@ -12,7 +12,7 @@ def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_c
     """
     if dataset_id is not None:  
         opening += f"""
-    \nThis automated analysis evaluated the model on the dataset {dataset_id} (subset `{dataset_config}`, split `{dataset_split}`).
+        \nThis automated analysis evaluated the model on the dataset {dataset_id} (subset `{dataset_config}`, split `{dataset_split}`).
         """
     return opening
 
