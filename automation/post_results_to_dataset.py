@@ -1,5 +1,5 @@
 from huggingface_hub import CommitScheduler
-from .utils import DATASET_ID, check_env_vars_and_login
+from .utils import DATASET_ID, ISSUE_GROUPS
 from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
@@ -8,14 +8,14 @@ from collections import defaultdict
 
 RESULT_DIR = Path("json_dataset")
 
-def init_commit_scheduler(hf_token=None, dataset_id=None):
+def init_dataset_commit_scheduler(hf_token=None, dataset_id=None):
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
-    check_env_vars_and_login(hf_token, dataset_id)
-    
+
     scheduler = CommitScheduler(
         repo_id=DATASET_ID or dataset_id,
         repo_type="dataset",
         folder_path=RESULT_DIR,
+        token=hf_token,
         path_in_repo=".")
     
     return scheduler
@@ -29,7 +29,9 @@ def commit_to_dataset(
     discussion,
     scan_report: object):
 
-    new_record = {
+    new_record = dict.fromkeys(ISSUE_GROUPS, 0)
+    
+    new_record.update({
         "task": "text_classification",
         "model_id": model_name,
         "dataset_id": dataset_id,
@@ -38,7 +40,7 @@ def commit_to_dataset(
         "total_issues": len(scan_report.scan_result.issues),
         "report_link": discussion.url,
         "timestamp": datetime.now().isoformat(),
-    }
+    })
 
     if len(scan_report.scan_result.issues) != 0:
         issues_by_group = defaultdict(list)

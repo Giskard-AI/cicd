@@ -2,6 +2,7 @@ import huggingface_hub as hf_hub
 import markdown
 import re
 from time import sleep
+from .utils import ISSUE_GROUPS
 
 def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count):
     opening = """
@@ -54,22 +55,8 @@ def save_post(report_path, path, dataset_id, dataset_config, dataset_split):
         f.write(post)
 
 def separate_report_by_issues(report):
-    issues_titles = [
-        "Robustness", 
-        "Performance", 
-        "Overconfidence",
-        "Underconfidence",
-        "Ethical",
-        "Data Leakage",
-        "Stochasticity",
-        "Spurious Correlation",
-        "Harmfulness", 
-        "Stereotypes", 
-        "Hallucination and Misinformation",
-        "Sensitive Information Disclosure",
-        "Output Formatting"]
     # TODO: add markdown comments to the report as a split marker
-    regex = "\W(?=" + '|'.join(["<details>\n<summary>👉" + issue for issue in issues_titles]) + ")"
+    regex = "\W(?=" + '|'.join(["<details>\n<summary>👉" + issue for issue in ISSUE_GROUPS]) + ")"
     sub_reports = re.split(regex, report)
     return sub_reports
 

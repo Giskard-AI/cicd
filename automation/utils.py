@@ -16,3 +16,18 @@ def check_env_vars_and_login(hf_token=None, dataset_id=None):
     login(token=HF_WRITE_TOKEN or hf_token, write_permission=True)
 
     logging.set_verbosity_debug()
+
+ISSUE_GROUPS = [
+    "Robustness", 
+    "Performance", 
+    "Overconfidence",
+    "Underconfidence",
+    "Ethical",
+    "Data Leakage",
+    "Stochasticity",
+    "Spurious Correlation",
+    "Harmfulness", 
+    "Stereotypes", 
+    "Hallucination and Misinformation",
+    "Sensitive Information Disclosure",
+    "Output Formatting"]

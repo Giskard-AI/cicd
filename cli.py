@@ -7,11 +7,9 @@ import logging
 from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
 
-from automation import create_discussion, init_commit_scheduler, commit_to_dataset
-
+from automation import create_discussion, init_dataset_commit_scheduler, commit_to_dataset
 
 logger = logging.getLogger(__file__)
-scheduler = init_commit_scheduler()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -124,6 +122,8 @@ if __name__ == "__main__":
         rendered_report = report.to_html()
 
     if args.output_portal == "huggingface":
+        scheduler = init_dataset_commit_scheduler(hf_token=args.hf_token, dataset_id="ZeroCommand/test-giskard-report")
+
         # Push to discussion
         # FIXME: dataset config and dataset split might have been inferred
         discussion = create_discussion(
@@ -145,7 +145,6 @@ if __name__ == "__main__":
             discussion,
             report
         )
-
 
     if args.output:
         with open(args.output, "w") as f:
