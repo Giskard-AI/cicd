@@ -3,6 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "giskard_cicd"
+version = "0.1.0"
 readme = "README.md"
 dependencies = [
     "datasets",
