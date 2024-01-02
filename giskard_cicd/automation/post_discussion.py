@@ -2,6 +2,8 @@ import huggingface_hub as hf_hub
 import markdown
 import re
 from time import sleep
+from .utils import ISSUE_GROUPS
+
 
 def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count):
     opening = """
@@ -10,11 +12,12 @@ def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_c
     opening += f"""
     \nWe have identified {vulnerability_count} potential vulnerabilities in your model based on an automated scan.
     """
-    if dataset_id is not None:  
+    if dataset_id is not None:
         opening += f"""
-    \nThis automated analysis evaluated the model on the dataset {dataset_id} (subset `{dataset_config}`, split `{dataset_split}`).
+        \nThis automated analysis evaluated the model on the dataset {dataset_id} (subset `{dataset_config}`, split `{dataset_split}`).
         """
     return opening
+
 
 def construct_closing():
     disclaimer = """
@@ -38,7 +41,9 @@ def construct_post_content(
         vulnerability_count = 0
 
     # Construct the content of the post
-    opening = construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count)
+    opening = construct_opening(
+        dataset_id, dataset_config, dataset_split, vulnerability_count
+    )
 
     closing = construct_closing()
 
@@ -53,25 +58,17 @@ def save_post(report_path, path, dataset_id, dataset_config, dataset_split):
     with open(path, "w") as f:
         f.write(post)
 
+
 def separate_report_by_issues(report):
-    issues_titles = [
-        "Robustness", 
-        "Performance", 
-        "Overconfidence",
-        "Underconfidence",
-        "Ethical",
-        "Data Leakage",
-        "Stochasticity",
-        "Spurious Correlation",
-        "Harmfulness", 
-        "Stereotypes", 
-        "Hallucination and Misinformation",
-        "Sensitive Information Disclosure",
-        "Output Formatting"]
     # TODO: add markdown comments to the report as a split marker
-    regex = "\W(?=" + '|'.join(["<details>\n<summary>👉" + issue for issue in issues_titles]) + ")"
+    regex = (
+        "\W(?="
+        + "|".join(["<details>\n<summary>👉" + issue for issue in ISSUE_GROUPS])
+        + ")"
+    )
     sub_reports = re.split(regex, report)
     return sub_reports
+
 
 def post_issue_as_comment(discussion, issue, token, repo_id):
     comment = hf_hub.comment_discussion(
@@ -83,14 +80,16 @@ def post_issue_as_comment(discussion, issue, token, repo_id):
     )
     return comment
 
+
 def post_too_long_report_in_comments(discussion, report, token, repo_id):
     sub_reports = separate_report_by_issues(report)
 
     for issue in sub_reports:
         post_issue_as_comment(discussion, issue, token, repo_id)
-    
+
     post_issue_as_comment(discussion, construct_closing(), token, repo_id)
     return discussion
+
 
 def create_discussion(
     repo_id,
@@ -104,7 +103,9 @@ def create_discussion(
 ):
     if len(report) > 60000:
         vulnerability_count = len(scan_report.scan_result.issues)
-        opening = construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count)
+        opening = construct_opening(
+            dataset_id, dataset_config, dataset_split, vulnerability_count
+        )
         discussion = hf_hub.create_discussion(
             repo_id,
             title=f"Report for {model_name}",
@@ -117,7 +118,7 @@ def create_discussion(
         sleep(1)
         post_too_long_report_in_comments(discussion, report, hf_token, repo_id)
         return discussion
-    
+
     description = construct_post_content(
         report, dataset_id, dataset_config, dataset_split, scan_report
     )
