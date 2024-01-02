@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-giskard_evaluator = "cli:main"
+giskard_evaluator = "giskard_cicd.cli:main"
 
 [project]
 name = "giskard_cicd"
