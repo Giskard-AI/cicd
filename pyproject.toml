@@ -1,6 +1,10 @@
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+giskard_evaluator = "cli"
+
 [project]
 name = "giskard_cicd"
 version = "0.1.0"
