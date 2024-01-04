@@ -1,17 +1,17 @@
 import argparse
 import json
+import logging
 import pickle
 import uuid
-import logging
-
-from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
-from giskard_cicd.pipeline.runner import PipelineRunner
 
 from giskard_cicd.automation import (
+    commit_to_dataset,
     create_discussion,
     init_dataset_commit_scheduler,
-    commit_to_dataset,
 )
+from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
+from giskard_cicd.pipeline.runner import PipelineRunner
+from giskard_cicd.utils import giskard_hub_upload_helper
 
 logger = logging.getLogger(__file__)
 
@@ -61,6 +61,38 @@ def main():
 
     parser.add_argument(
         "--persistent_scan", help="Persistent scan report.", type=bool, default=False
+    )
+
+    # Giskard hub upload args, set --giskard-hub-api-key to upload
+    parser.add_argument(
+        "--giskard-hub-url",
+        help="The URL to upload the scan result.",
+        type=str,
+        default="https://giskardai-giskard.hf.space",
+    )
+    parser.add_argument(
+        "--giskard-hub-project",
+        help="The project to upload the scan result.",
+        type=str,
+        default="Giskard bot Project",
+    )
+    parser.add_argument(
+        "--giskard-hub-api-key",
+        help="The Api Key to upload the scan result.",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--giskard-hub-hf-token",
+        help="The Hugging Face Spaces token to upload the scan result to a private Space.",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--giskard-hub-unlock-token",
+        help="The unlock token to upload the scan result to a locked Space.",
+        type=str,
+        default=None,
     )
 
     args = parser.parse_args()
@@ -119,6 +151,20 @@ def main():
         with open(fn, "wb") as f:
             pickle.dump(report, f)
         print(f"Scan report persisted in {fn}")
+
+    if args.giskard_hub_api_key is not None:
+        # Upload to a Giskard Hub instance
+        logger.info(f"Uploading to {args.giskard_hub_url}")
+        giskard_hub_upload_helper(
+            args,
+            report,
+            url=args.giskard_hub_url,
+            project_key=args.giskard_hub_project.lower().replace(" ", "_"),
+            project=args.giskard_hub_project,
+            key=args.giskard_hub_api_key,
+            hf_token=args.giskard_hub_hf_token,
+            unlock_token=args.giskard_hub_unlock_token,
+        )
 
     # In the future, write markdown report or directly push to discussion.
     if args.output_format == "markdown":
