@@ -193,6 +193,7 @@ class HuggingFaceLoader(BaseLoader):
                 classification_labels=labels,
                 batch_size=None,
                 device=device,
+                feature_names=["text"] if features is None else features,
             )
         elif inference_type == "hf_inference_api":
             if features is None:
