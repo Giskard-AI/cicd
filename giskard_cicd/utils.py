@@ -1,3 +1,4 @@
+from json import JSONDecodeError
 import logging
 import pathlib
 
@@ -6,7 +7,7 @@ from giskard.client.giskard_client import GiskardError
 
 logger = logging.getLogger(__file__)
 
-GISKARD_HUB_UNLOCK_STATUS_ENDPOINT = "/hfs/unlock"
+GISKARD_HUB_UNLOCK_STATUS_ENDPOINT = "hfs/unlock"
 
 
 def dump_model_and_dataset_for_cicd(artifact_path, giskard_model, giskard_dataset):
@@ -100,6 +101,10 @@ def giskard_hub_upload_helper(
     except GiskardError as e:
         logger.warn(f"Uploading project failed: {e}")
         return
+    except JSONDecodeError as e:
+        logger.warn(f"Uploading project failed due to response decoding: {e}")
+        return
+
     finally:
         if need_relock:
             logger.debug("Relocking the Space")
