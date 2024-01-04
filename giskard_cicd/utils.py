@@ -58,10 +58,10 @@ def giskard_hub_upload_helper(
         # Check unlock state
         unlock_resp = client.session.get(GISKARD_HUB_UNLOCK_STATUS_ENDPOINT).json()
 
-        if not unlock_resp.unlocked and unlock_token is None:
+        if not unlock_resp["unlocked"] and unlock_token is None:
             logger.warn("Cannot upload to a locked Giskard Hub without unlock token")
             return
-        elif not unlock_resp.unlocked:
+        elif not unlock_resp["unlocked"]:
             resp = client.session.post(
                 GISKARD_HUB_UNLOCK_STATUS_ENDPOINT,
                 json={
@@ -69,14 +69,14 @@ def giskard_hub_upload_helper(
                     "unlocked": True,
                 },
             ).json()
-            if not resp.unlocked:
+            if not resp["unlocked"]:
                 # Unlock failed
                 logger.warn(
                     "Cannot upload to a locked Giskard Hub due to wrong unlock token"
                 )
                 return
             # Unlock succeed
-            need_relock = unlock_resp.unlocked
+            need_relock = unlock_resp["unlocked"]
 
         # Create project
         project_name = project if project is not None else "Giskard bot Project"
