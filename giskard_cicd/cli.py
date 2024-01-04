@@ -138,8 +138,12 @@ def main():
         runner_kwargs.update({"manual_feature_mapping": feature_mapping})
         runner_kwargs.update({"classification_label_mapping": label_mapping})
 
+    # Hide critical information
+    anonymous_runner_kwargs = runner_kwargs.copy()
+    if "hf_token" in anonymous_runner_kwargs:
+        anonymous_runner_kwargs.pop("hf_token")
     logger.info(
-        f'Running scanner with {runner_kwargs} to evaluate "{args.model}" model'
+        f'Running scanner with {anonymous_runner_kwargs} to evaluate "{args.model}" model'
     )
     report = runner.run(**runner_kwargs)
 
