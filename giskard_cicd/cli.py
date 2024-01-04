@@ -63,7 +63,7 @@ def main():
         "--persistent_scan", help="Persistent scan report.", type=bool, default=False
     )
 
-    # Giskard hub upload args, set --giskard-hub-api-key to upload
+    # Giskard hub upload args, set --giskard_hub_api_key to upload
     parser.add_argument(
         "--giskard_hub_url",
         help="The URL to upload the scan result.",
@@ -84,7 +84,7 @@ def main():
     )
     parser.add_argument(
         "--giskard_hub_api_key",
-        help="The Api Key to upload the scan result.",
+        help="The API Key to upload the scan result.",
         type=str,
         default=None,
     )
