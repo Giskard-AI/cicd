@@ -65,37 +65,37 @@ def main():
 
     # Giskard hub upload args, set --giskard-hub-api-key to upload
     parser.add_argument(
-        "--giskard-hub-url",
+        "--giskard_hub_url",
         help="The URL to upload the scan result.",
         type=str,
         default="https://giskardai-giskard.hf.space",
     )
     parser.add_argument(
-        "--giskard-hub-project-key",
+        "--giskard_hub_project_key",
         help="The project key to upload the scan result.",
         type=str,
         default="giskard_bot_project",
     )
     parser.add_argument(
-        "--giskard-hub-project",
+        "--giskard_hub_project",
         help="The project to upload the scan result.",
         type=str,
         default="Giskard bot Project",
     )
     parser.add_argument(
-        "--giskard-hub-api-key",
+        "--giskard_hub_api_key",
         help="The Api Key to upload the scan result.",
         type=str,
         default=None,
     )
     parser.add_argument(
-        "--giskard-hub-hf-token",
+        "--giskard_hub_hf_token",
         help="The Hugging Face Spaces token to upload the scan result to a private Space.",
         type=str,
         default=None,
     )
     parser.add_argument(
-        "--giskard-hub-unlock-token",
+        "--giskard_hub_unlock_token",
         help="The unlock token to upload the scan result to a locked Space.",
         type=str,
         default=None,
