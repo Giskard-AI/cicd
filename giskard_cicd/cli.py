@@ -71,6 +71,12 @@ def main():
         default="https://giskardai-giskard.hf.space",
     )
     parser.add_argument(
+        "--giskard-hub-project-key",
+        help="The project key to upload the scan result.",
+        type=str,
+        default="giskard_bot_project",
+    )
+    parser.add_argument(
         "--giskard-hub-project",
         help="The project to upload the scan result.",
         type=str,
@@ -159,7 +165,7 @@ def main():
             args,
             report,
             url=args.giskard_hub_url,
-            project_key=args.giskard_hub_project.lower().replace(" ", "_"),
+            project_key=args.giskard_hub_project_key,
             project=args.giskard_hub_project,
             key=args.giskard_hub_api_key,
             hf_token=args.giskard_hub_hf_token,
