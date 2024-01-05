@@ -64,7 +64,7 @@ def main():
     )
 
     parser.add_argument(
-        "--leaderbord_dataset", help="The leaderboard dataset to push the report to."
+        "--leaderboard_dataset", help="The leaderboard dataset to push the report to."
     )
 
     args = parser.parse_args()
@@ -145,9 +145,9 @@ def main():
             report,
         )
 
-        if args.leaderbord_dataset:  # Commit to leaderboard dataset
+        if args.leaderboard_dataset:  # Commit to leaderboard dataset
             scheduler = init_dataset_commit_scheduler(
-                hf_token=args.hf_token, dataset_id=args.leaderbord_dataset
+                hf_token=args.hf_token, dataset_id=args.leaderboard_dataset
             )
 
             try:
