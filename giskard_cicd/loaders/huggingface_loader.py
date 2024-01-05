@@ -113,7 +113,11 @@ class HuggingFaceLoader(BaseLoader):
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
         logger.debug("Wrapping dataset")
         gsk_dataset = gsk.Dataset(
-            df, target="label", column_types={"text": "text"}, validation=False
+            df,
+            name=f"HF {dataset}[{dataset_config}]({dataset_split}) for {model} model",
+            target="label",
+            column_types={"text": "text"},
+            validation=False,
         )
 
         logger.debug("Wrapping model")
@@ -125,7 +129,7 @@ class HuggingFaceLoader(BaseLoader):
             inference_type=inference_type,
             device=self.device,
             hf_token=inference_token,
-            )
+        )
 
         # Optimize batch size
         if self.device.startswith("cuda"):
@@ -185,10 +189,12 @@ class HuggingFaceLoader(BaseLoader):
             return HuggingFaceModel(
                 hf_model,
                 model_type="classification",
+                name=f"{model_name} HF pipeline",
                 data_preprocessing_function=lambda df: df.text.tolist(),
                 classification_labels=labels,
                 batch_size=None,
                 device=device,
+                feature_names=["text"] if features is None else features,
             )
         elif inference_type == "hf_inference_api":
             if features is None:
@@ -200,7 +206,7 @@ class HuggingFaceLoader(BaseLoader):
                 raise ValueError(
                     "hf_token must be provided when using model_type='hf_inference_api'"
                 )
-            
+
             def _query_for_inference(payload):
                 url = f"https://api-inference.huggingface.co/models/{model_name}"
                 headers = {"Authorization": f"Bearer {hf_token}"}

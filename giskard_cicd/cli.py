@@ -1,17 +1,17 @@
 import argparse
 import json
+import logging
 import pickle
 import uuid
-import logging
-
-from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
-from giskard_cicd.pipeline.runner import PipelineRunner
 
 from giskard_cicd.automation import (
+    commit_to_dataset,
     create_discussion,
     init_dataset_commit_scheduler,
-    commit_to_dataset,
 )
+from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
+from giskard_cicd.pipeline.runner import PipelineRunner
+from giskard_cicd.utils import giskard_hub_upload_helper
 
 logger = logging.getLogger(__file__)
 
@@ -67,6 +67,44 @@ def main():
         "--leaderboard_dataset", help="The leaderboard dataset to push the report to."
     )
 
+    # Giskard hub upload args, set --giskard_hub_api_key to upload
+    parser.add_argument(
+        "--giskard_hub_url",
+        help="The URL to upload the scan result.",
+        type=str,
+        default="https://giskardai-giskard.hf.space",
+    )
+    parser.add_argument(
+        "--giskard_hub_project_key",
+        help="The project key to upload the scan result.",
+        type=str,
+        default="giskard_bot_project",
+    )
+    parser.add_argument(
+        "--giskard_hub_project",
+        help="The project to upload the scan result.",
+        type=str,
+        default="Giskard bot Project",
+    )
+    parser.add_argument(
+        "--giskard_hub_api_key",
+        help="The API Key to upload the scan result.",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--giskard_hub_hf_token",
+        help="The Hugging Face Spaces token to upload the scan result to a private Space.",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--giskard_hub_unlock_token",
+        help="The unlock token to upload the scan result to a locked Space.",
+        type=str,
+        default=None,
+    )
+
     args = parser.parse_args()
 
     supported_loaders = {
@@ -105,8 +143,12 @@ def main():
         runner_kwargs.update({"manual_feature_mapping": feature_mapping})
         runner_kwargs.update({"classification_label_mapping": label_mapping})
 
+    # Hide critical information
+    anonymous_runner_kwargs = runner_kwargs.copy()
+    if "hf_token" in anonymous_runner_kwargs:
+        anonymous_runner_kwargs.pop("hf_token")
     logger.info(
-        f'Running scanner with {runner_kwargs} to evaluate "{args.model}" model'
+        f'Running scanner with {anonymous_runner_kwargs} to evaluate "{args.model}" model'
     )
     report = runner.run(**runner_kwargs)
 
@@ -124,6 +166,20 @@ def main():
         with open(fn, "wb") as f:
             pickle.dump(report, f)
         print(f"Scan report persisted in {fn}")
+
+    if args.giskard_hub_api_key is not None:
+        # Upload to a Giskard Hub instance
+        logger.info(f"Uploading to {args.giskard_hub_url}")
+        giskard_hub_upload_helper(
+            args,
+            report,
+            url=args.giskard_hub_url,
+            project_key=args.giskard_hub_project_key,
+            project=args.giskard_hub_project,
+            key=args.giskard_hub_api_key,
+            hf_token=args.giskard_hub_hf_token,
+            unlock_token=args.giskard_hub_unlock_token,
+        )
 
     # In the future, write markdown report or directly push to discussion.
     if args.output_format == "markdown":

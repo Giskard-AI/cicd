@@ -64,7 +64,7 @@ def classification_model_from_inference_api(
     return Model(
         model=prediction,  # A prediction function that encapsulates all the data pre-processing steps and that
         model_type="classification",  # Either regression, classification or text_generation.
-        name=model_name,  # Optional
+        name=f"{model_name} HF inference API",  # Optional
         classification_labels=labels,  # Their order MUST be identical to the prediction_function's
         feature_names=features,  # Default: all columns of your dataset
     )
