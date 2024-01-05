@@ -4,6 +4,7 @@ from uuid import uuid4
 from pathlib import Path
 from datetime import datetime
 import json
+import logging
 from collections import defaultdict
 
 RESULT_DIR = Path("json_dataset")
@@ -12,15 +13,19 @@ RESULT_DIR = Path("json_dataset")
 def init_dataset_commit_scheduler(hf_token=None, dataset_id=None):
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
-    scheduler = CommitScheduler(
-        repo_id=DATASET_ID or dataset_id,
-        repo_type="dataset",
-        folder_path=RESULT_DIR,
-        token=hf_token,
-        path_in_repo=".",
-    )
+    try:
+        scheduler = CommitScheduler(
+            repo_id=DATASET_ID or dataset_id,
+            repo_type="dataset",
+            folder_path=RESULT_DIR,
+            token=hf_token,
+            path_in_repo=".",
+        )
 
-    return scheduler
+        return scheduler
+    except Exception as e:
+        logging.debug(f"Failed to initialize dataset commit scheduler: {e}")
+        return None
 
 
 def commit_to_dataset(

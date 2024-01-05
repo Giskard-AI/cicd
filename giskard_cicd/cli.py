@@ -63,6 +63,10 @@ def main():
         "--persistent_scan", help="Persistent scan report.", type=bool, default=False
     )
 
+    parser.add_argument(
+        "--leaderbord_dataset", help="The leaderboard dataset to push the report to."
+    )
+
     args = parser.parse_args()
 
     supported_loaders = {
@@ -71,6 +75,7 @@ def main():
     }
 
     runner = PipelineRunner(loaders=supported_loaders)
+
 
     runner_kwargs = {
         "loader_id": args.loader,
@@ -126,9 +131,9 @@ def main():
     else:
         rendered_report = report.to_html()
 
-    if args.output_portal == "huggingface":
+    if args.output_portal == "huggingface" and args.leaderbord_dataset:
         scheduler = init_dataset_commit_scheduler(
-            hf_token=args.hf_token, dataset_id="ZeroCommand/test-giskard-report"
+            hf_token=args.hf_token, dataset_id=args.leaderbord_dataset
         )
 
         # Push to discussion
@@ -143,15 +148,21 @@ def main():
             args.dataset_split,
             report,
         )
-        commit_to_dataset(
-            scheduler,
-            args.model,
-            args.dataset,
-            args.dataset_config,
-            args.dataset_split,
-            discussion,
-            report,
-        )
+
+        if scheduler and args.leaderbord_dataset:
+            try:
+                commit_to_dataset(
+                    scheduler,
+                    args.model,
+                    args.dataset,
+                    args.dataset_config,
+                    args.dataset_split,
+                    discussion,
+                    report,
+                )
+            except Exception as e:
+                logging.debug(f"Failed to commit to dataset: {e}")
+ 
 
     if args.output:
         with open(args.output, "w") as f:
