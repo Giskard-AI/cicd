@@ -131,11 +131,7 @@ def main():
     else:
         rendered_report = report.to_html()
 
-    if args.output_portal == "huggingface" and args.leaderbord_dataset:
-        scheduler = init_dataset_commit_scheduler(
-            hf_token=args.hf_token, dataset_id=args.leaderbord_dataset
-        )
-
+    if args.output_portal == "huggingface":
         # Push to discussion
         # FIXME: dataset config and dataset split might have been inferred
         discussion = create_discussion(
@@ -149,7 +145,11 @@ def main():
             report,
         )
 
-        if scheduler and args.leaderbord_dataset:
+        if args.leaderbord_dataset:  # Commit to leaderboard dataset
+            scheduler = init_dataset_commit_scheduler(
+                hf_token=args.hf_token, dataset_id=args.leaderbord_dataset
+            )
+
             try:
                 commit_to_dataset(
                     scheduler,

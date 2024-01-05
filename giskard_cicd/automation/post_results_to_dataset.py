@@ -37,6 +37,9 @@ def commit_to_dataset(
     discussion,
     scan_report: object,
 ):
+    if not scheduler:
+        raise ValueError("Scheduler is not initialized")
+    
     new_record = dict.fromkeys(ISSUE_GROUPS, 0)
 
     new_record.update(
