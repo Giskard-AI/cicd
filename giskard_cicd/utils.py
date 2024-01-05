@@ -75,8 +75,8 @@ def giskard_hub_upload_helper(
                     "Cannot upload to a locked Giskard Hub due to wrong unlock token"
                 )
                 return
-            # Unlock succeed
-            need_relock = unlock_resp["unlocked"]
+            # Unlock succeed: remeber to lock it
+            need_relock = resp["unlocked"]
 
         # Create project
         project_name = project if project is not None else "Giskard bot Project"
