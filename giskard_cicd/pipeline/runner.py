@@ -37,7 +37,7 @@ class PipelineRunner:
             params = scan_config.get("configuration")
             detectors = scan_config.get("detectors")
             kwargs.update({"inference_type": scan_config.get("inference_type", "hf_inference_api")})
-            kwargs.update({"inference_token", scan_config.get("inference_token")})
+            kwargs.update({"inference_token": scan_config.get("inference_token")})
 
 
         start = time.time()
