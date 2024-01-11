@@ -1,7 +1,13 @@
-from giskard import Model
-import pandas as pd
-import numpy as np
+import logging
 from time import sleep
+
+import numpy as np
+import pandas as pd
+from giskard import Model
+
+logger = logging.getLogger(__file__)
+
+MAX_ROW = 200
 
 
 def extract_scores(data):
@@ -28,14 +34,24 @@ def extract_scores(data):
 def predict_from_text_classification_inference(df: pd.DataFrame, query) -> np.ndarray:
     results = []
     # get all text from the dataframe
-    inputs = df["text"].tolist()
+    raw_inputs = df["text"].tolist()
 
-    payload = {"inputs": inputs, "options": {"use_cache": True, "wait_for_model": True}}
-    output = query(payload)
-    sleep(0.5)
+    for i in range(0, len(raw_inputs), MAX_ROW):
+        inputs = raw_inputs[i : min(i + MAX_ROW, len(raw_inputs))]
+        payload = {"inputs": inputs, "options": {"use_cache": True}}
 
-    for i in output:
-        results.append(extract_scores(i))
+        logger.debug(f"Requesting {len(inputs)} rows of data: ({i}/{len(raw_inputs)})")
+        output = {"error": "First attemp"}
+        while "error" in output:
+            # Retry
+            logger.debug(output)
+            sleep(0.5)
+            output = query(payload)
+
+        for i in output:
+            results.append(extract_scores(i))
+
+    logger.debug(f"Finished, got {len(results)} results")
 
     return np.array(results)
 
