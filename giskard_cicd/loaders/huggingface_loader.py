@@ -47,7 +47,7 @@ class HuggingFaceLoader(BaseLoader):
         classification_label_mapping: Dict[int, str] = None,
         hf_token=None,
         inference_type="hf_pipeline",
-        inference_token=None,
+        inference_api_token=None,
     ):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
@@ -128,7 +128,7 @@ class HuggingFaceLoader(BaseLoader):
             features=feature_mapping,
             inference_type=inference_type,
             device=self.device,
-            hf_token=inference_token,
+            hf_token=inference_api_token,
         )
 
         # Optimize batch size

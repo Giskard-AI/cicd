@@ -66,6 +66,13 @@ def main():
     parser.add_argument(
         "--leaderboard_dataset", help="The leaderboard dataset to push the report to."
     )
+    parser.add_argument(
+        "--inference_type",
+        help="The inference type to use. Default is `hf_inference_api`.",
+    )
+    parser.add_argument(
+        "--inference_api_token", help="The HF token to call inference API with."
+    )
 
     # Giskard hub upload args, set --giskard_hub_api_key to upload
     parser.add_argument(
@@ -128,6 +135,8 @@ def main():
                 "dataset_split": args.dataset_split,
                 "dataset_config": args.dataset_config,
                 "hf_token": args.hf_token,
+                "inference_type": args.inference_type,
+                "inference_api_token": args.inference_api_token,
             }
         )
         try:
