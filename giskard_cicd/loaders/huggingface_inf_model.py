@@ -32,7 +32,7 @@ def predict_from_text_classification_inference(df: pd.DataFrame, query) -> np.nd
 
     payload = {"inputs": inputs, "options": {"use_cache": True, "wait_for_model": True}}
     output = query(payload)
-    sleep(5)
+    sleep(0.5)
 
     for i in output:
         results.append(extract_scores(i))
