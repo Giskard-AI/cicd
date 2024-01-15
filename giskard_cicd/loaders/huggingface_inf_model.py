@@ -76,7 +76,7 @@ def classification_model_from_inference_api(
 
     else:
         raise NotImplementedError(
-            "Only text_classification models are supported for now."
+            f"Not supported model type: {model_type}. Only text_classification models are supported for now."
         )
 
     if prediction is None:

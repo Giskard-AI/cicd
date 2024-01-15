@@ -188,6 +188,7 @@ class HuggingFaceLoader(BaseLoader):
         inference_api_batch_size=200,
     ):
         model_name = hf_model.model.config._name_or_path
+        logger.info(f"Loading '{inference_type}' model from Hugging Face")
         if inference_type == "hf_pipeline":
             return HuggingFaceModel(
                 hf_model,
@@ -224,7 +225,11 @@ class HuggingFaceLoader(BaseLoader):
                     return {"error": response.content}
 
             return classification_model_from_inference_api(
-                model_name, labels, features, _query_for_inference
+                model_name,
+                labels,
+                features,
+                _query_for_inference,
+                inference_api_batch_size=inference_api_batch_size,
             )
 
     def _get_dataset_features(self, hf_dataset):
