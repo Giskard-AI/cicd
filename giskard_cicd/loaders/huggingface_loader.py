@@ -7,16 +7,16 @@ from typing import Dict
 import datasets
 import giskard as gsk
 import huggingface_hub
+import pandas as pd
+import requests
 import torch
 from giskard import Dataset
 from giskard.models.base import BaseModel
 from giskard.models.huggingface import HuggingFaceModel
 from transformers.pipelines import TextClassificationPipeline
-import requests
 
-from .huggingface_inf_model import classification_model_from_inference_api
-import pandas as pd
 from .base_loader import BaseLoader, DatasetError
+from .huggingface_inf_model import classification_model_from_inference_api
 
 logger = logging.getLogger(__file__)
 
@@ -48,6 +48,7 @@ class HuggingFaceLoader(BaseLoader):
         hf_token=None,
         inference_type="hf_pipeline",
         inference_api_token=None,
+        inference_api_batch_size=200,
     ):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
@@ -129,6 +130,7 @@ class HuggingFaceLoader(BaseLoader):
             inference_type=inference_type,
             device=self.device,
             hf_token=inference_api_token,
+            inference_api_batch_size=inference_api_batch_size,
         )
 
         # Optimize batch size
@@ -183,8 +185,10 @@ class HuggingFaceLoader(BaseLoader):
         inference_type="hf_inference_api",
         device=None,
         hf_token=None,
+        inference_api_batch_size=200,
     ):
         model_name = hf_model.model.config._name_or_path
+        logger.info(f"Loading '{inference_type}' model from Hugging Face")
         if inference_type == "hf_pipeline":
             return HuggingFaceModel(
                 hf_model,
@@ -211,10 +215,21 @@ class HuggingFaceLoader(BaseLoader):
                 url = f"https://api-inference.huggingface.co/models/{model_name}"
                 headers = {"Authorization": f"Bearer {hf_token}"}
                 response = requests.post(url, headers=headers, json=payload)
-                return response.json()
+                if response.status_code != 200:
+                    logger.debug(
+                        f"Request to inference API returns {response.status_code}"
+                    )
+                try:
+                    return response.json()
+                except Exception:
+                    return {"error": response.content}
 
             return classification_model_from_inference_api(
-                model_name, labels, features, _query_for_inference
+                model_name,
+                labels,
+                features,
+                _query_for_inference,
+                inference_api_batch_size=inference_api_batch_size,
             )
 
     def _get_dataset_features(self, hf_dataset):

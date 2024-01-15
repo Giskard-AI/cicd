@@ -1,7 +1,11 @@
-from giskard import Model
-import pandas as pd
-import numpy as np
+import logging
 from time import sleep
+
+import numpy as np
+import pandas as pd
+from giskard import Model
+
+logger = logging.getLogger(__file__)
 
 
 def extract_scores(data):
@@ -25,23 +29,40 @@ def extract_scores(data):
     return scores
 
 
-def predict_from_text_classification_inference(df: pd.DataFrame, query) -> np.ndarray:
+def predict_from_text_classification_inference(
+    df: pd.DataFrame, query, inference_api_batch_size=200
+) -> np.ndarray:
     results = []
     # get all text from the dataframe
-    inputs = df["text"].tolist()
+    raw_inputs = df["text"].tolist()
 
-    payload = {"inputs": inputs, "options": {"use_cache": True, "wait_for_model": True}}
-    output = query(payload)
-    sleep(0.5)
+    for i in range(0, len(raw_inputs), inference_api_batch_size):
+        inputs = raw_inputs[i : min(i + inference_api_batch_size, len(raw_inputs))]
+        payload = {"inputs": inputs, "options": {"use_cache": True}}
 
-    for i in output:
-        results.append(extract_scores(i))
+        logger.debug(f"Requesting {len(inputs)} rows of data: ({i}/{len(raw_inputs)})")
+        output = {"error": "First attemp"}
+        while "error" in output:
+            # Retry
+            logger.debug(output)
+            sleep(0.5)
+            output = query(payload)
+
+        for i in output:
+            results.append(extract_scores(i))
+
+    logger.debug(f"Finished, got {len(results)} results")
 
     return np.array(results)
 
 
 def classification_model_from_inference_api(
-    model_name, labels, features, query, model_type="text_classification"
+    model_name,
+    labels,
+    features,
+    query,
+    model_type="text_classification",
+    inference_api_batch_size=200,
 ):
     """
     Get a Giskard model from the HuggingFace inference API.
@@ -49,11 +70,13 @@ def classification_model_from_inference_api(
     if model_type == "text_classification":
 
         def prediction(df: pd.DataFrame) -> np.ndarray:
-            return predict_from_text_classification_inference(df, query)
+            return predict_from_text_classification_inference(
+                df, query, inference_api_batch_size
+            )
 
     else:
         raise NotImplementedError(
-            "Only text_classification models are supported for now."
+            f"Not supported model type: {model_type}. Only text_classification models are supported for now."
         )
 
     if prediction is None:

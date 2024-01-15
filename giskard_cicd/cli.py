@@ -73,6 +73,12 @@ def main():
     parser.add_argument(
         "--inference_api_token", help="The HF token to call inference API with."
     )
+    parser.add_argument(
+        "--inference_api_batch_size",
+        type=int,
+        help="The batch size used to call inference API.",
+        default=200,
+    )
 
     # Giskard hub upload args, set --giskard_hub_api_key to upload
     parser.add_argument(
@@ -121,7 +127,6 @@ def main():
 
     runner = PipelineRunner(loaders=supported_loaders)
 
-
     runner_kwargs = {
         "loader_id": args.loader,
         "model": args.model,
@@ -137,6 +142,7 @@ def main():
                 "hf_token": args.hf_token,
                 "inference_type": args.inference_type,
                 "inference_api_token": args.inference_api_token,
+                "inference_api_batch_size": args.inference_api_batch_size,
             }
         )
         try:
@@ -156,6 +162,8 @@ def main():
     anonymous_runner_kwargs = runner_kwargs.copy()
     if "hf_token" in anonymous_runner_kwargs:
         anonymous_runner_kwargs.pop("hf_token")
+    if "inference_api_token" in anonymous_runner_kwargs:
+        anonymous_runner_kwargs.pop("inference_api_token")
     logger.info(
         f'Running scanner with {anonymous_runner_kwargs} to evaluate "{args.model}" model'
     )
@@ -227,7 +235,6 @@ def main():
                 )
             except Exception as e:
                 logging.debug(f"Failed to commit to dataset: {e}")
- 
 
     if args.output:
         with open(args.output, "w") as f:
