@@ -74,7 +74,7 @@ class HuggingFaceLoader(BaseLoader):
 
         # Check that the dataset has the good feature names for the task.
         logger.debug("Retrieving feature mapping")
-        if manual_feature_mapping is None:
+        if manual_feature_mapping is None and isinstance(hf_model, TextClassificationPipeline):
             feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
             logger.warn(
                 f'Feature mapping is not provided, using extracted "{feature_mapping}"'
@@ -82,9 +82,12 @@ class HuggingFaceLoader(BaseLoader):
         else:
             feature_mapping = manual_feature_mapping
 
-        df = hf_dataset.to_pandas().rename(
-            columns={v: k for k, v in feature_mapping.items()}
-        )
+        if feature_mapping is not None:
+            df = hf_dataset.to_pandas().rename(
+                columns={v: k for k, v in feature_mapping.items()}
+            )
+        else:
+            df = hf_dataset.to_pandas()
 
         # remove the rows have multiple labels
         # this is a hacky way to do it
@@ -96,7 +99,7 @@ class HuggingFaceLoader(BaseLoader):
 
         # @TODO: currently for classification models only.
         logger.debug("Retrieving classification label mapping")
-        if classification_label_mapping is None:
+        if classification_label_mapping is None and isinstance(hf_model, TextClassificationPipeline):
             id2label = hf_model.model.config.id2label
             logger.warn(f'Label mapping is not provided, using "{id2label}" from model')
         else:
@@ -106,9 +109,10 @@ class HuggingFaceLoader(BaseLoader):
             # need to include all labels
             # rewrite this lambda function to include all labels
             df.label = df.label.apply(lambda x: id2label[x[0]])
-        else:
+        elif getattr(df, "label", None) is not None:
             # TODO: when the label for test is not provided, what do we do?
             df["label"] = df.label.apply(lambda x: id2label[x] if x >= 0 else "-1")
+
         # map the list of label ids to the list of labels
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
         logger.debug("Wrapping dataset")
@@ -170,8 +174,11 @@ class HuggingFaceLoader(BaseLoader):
 
     def load_model(self, model_id):
         from transformers import pipeline
+        from .tabular_loader import TabularClassificationPipeline
 
         task = huggingface_hub.model_info(model_id).pipeline_tag
+        if "tabular-classification" in task:
+            return TabularClassificationPipeline(task=task, model=model_id, model_id=model_id)
 
         return pipeline(task=task, model=model_id, device=self.device)
 
@@ -236,6 +243,8 @@ class HuggingFaceLoader(BaseLoader):
         Flatten the dataset to a pandas dataframe
         """
         flat_dataset = pd.DataFrame()
+        if isinstance(hf_dataset, datasets.Dataset):
+            return hf_dataset
         if isinstance(hf_dataset, datasets.DatasetDict):
             keys = list(hf_dataset.keys())
             for k in keys:
@@ -245,16 +254,15 @@ class HuggingFaceLoader(BaseLoader):
                     break
 
                 # Otherwise infer one data split
-                if k.startswith("train"):
-                    continue
-                elif k.startswith(data_split):
+                if k.startswith(data_split):
                     # TODO: only support one split for now
                     # Maybe we can merge all the datasets into one
                     flat_dataset = hf_dataset[k]
                     break
+                elif k.startswith("train"):
+                    continue
                 else:
                     flat_dataset = hf_dataset[k]
-
             # If there are only train datasets
             if isinstance(flat_dataset, pd.DataFrame) and flat_dataset.empty:
                 flat_dataset = hf_dataset[keys[0]]
@@ -264,6 +272,8 @@ class HuggingFaceLoader(BaseLoader):
     def _get_feature_mapping(self, hf_model, hf_dataset):
         if isinstance(hf_model, TextClassificationPipeline):
             task_features = {"text": "string", "label": "class_label"}
+        elif "tabular" in hf_model.pipeline_tag:
+            raise NotImplementedError("Tabular model features cannot be auto-mapped.")
         else:
             msg = "Unsupported model type."
             raise NotImplementedError(msg)
