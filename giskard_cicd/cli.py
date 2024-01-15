@@ -73,6 +73,12 @@ def main():
     parser.add_argument(
         "--inference_api_token", help="The HF token to call inference API with."
     )
+    parser.add_argument(
+        "--inference_api_batch_size",
+        type=int,
+        help="The batch size used to call inference API.",
+        default=200,
+    )
 
     # Giskard hub upload args, set --giskard_hub_api_key to upload
     parser.add_argument(
@@ -136,6 +142,7 @@ def main():
                 "hf_token": args.hf_token,
                 "inference_type": args.inference_type,
                 "inference_api_token": args.inference_api_token,
+                "inference_api_batch_size": args.inference_api_batch_size,
             }
         )
         try:

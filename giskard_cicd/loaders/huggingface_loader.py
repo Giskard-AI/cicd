@@ -48,6 +48,7 @@ class HuggingFaceLoader(BaseLoader):
         hf_token=None,
         inference_type="hf_pipeline",
         inference_api_token=None,
+        inference_api_batch_size=200,
     ):
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
@@ -129,6 +130,7 @@ class HuggingFaceLoader(BaseLoader):
             inference_type=inference_type,
             device=self.device,
             hf_token=inference_api_token,
+            inference_api_batch_size=inference_api_batch_size,
         )
 
         # Optimize batch size
@@ -183,6 +185,7 @@ class HuggingFaceLoader(BaseLoader):
         inference_type="hf_inference_api",
         device=None,
         hf_token=None,
+        inference_api_batch_size=200,
     ):
         model_name = hf_model.model.config._name_or_path
         if inference_type == "hf_pipeline":

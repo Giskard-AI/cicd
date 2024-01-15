@@ -7,8 +7,6 @@ from giskard import Model
 
 logger = logging.getLogger(__file__)
 
-MAX_ROW = 200
-
 
 def extract_scores(data):
     scores = []
@@ -31,13 +29,15 @@ def extract_scores(data):
     return scores
 
 
-def predict_from_text_classification_inference(df: pd.DataFrame, query) -> np.ndarray:
+def predict_from_text_classification_inference(
+    df: pd.DataFrame, query, inference_api_batch_size=200
+) -> np.ndarray:
     results = []
     # get all text from the dataframe
     raw_inputs = df["text"].tolist()
 
-    for i in range(0, len(raw_inputs), MAX_ROW):
-        inputs = raw_inputs[i : min(i + MAX_ROW, len(raw_inputs))]
+    for i in range(0, len(raw_inputs), inference_api_batch_size):
+        inputs = raw_inputs[i : min(i + inference_api_batch_size, len(raw_inputs))]
         payload = {"inputs": inputs, "options": {"use_cache": True}}
 
         logger.debug(f"Requesting {len(inputs)} rows of data: ({i}/{len(raw_inputs)})")
@@ -57,7 +57,12 @@ def predict_from_text_classification_inference(df: pd.DataFrame, query) -> np.nd
 
 
 def classification_model_from_inference_api(
-    model_name, labels, features, query, model_type="text_classification"
+    model_name,
+    labels,
+    features,
+    query,
+    model_type="text_classification",
+    inference_api_batch_size=200,
 ):
     """
     Get a Giskard model from the HuggingFace inference API.
@@ -65,7 +70,9 @@ def classification_model_from_inference_api(
     if model_type == "text_classification":
 
         def prediction(df: pd.DataFrame) -> np.ndarray:
-            return predict_from_text_classification_inference(df, query)
+            return predict_from_text_classification_inference(
+                df, query, inference_api_batch_size
+            )
 
     else:
         raise NotImplementedError(
