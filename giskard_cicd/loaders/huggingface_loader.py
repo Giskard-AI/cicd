@@ -170,8 +170,12 @@ class HuggingFaceLoader(BaseLoader):
 
     def load_model(self, model_id):
         from transformers import pipeline
+        from .tabular_loader import TabularClassificationPipeline
 
         task = huggingface_hub.model_info(model_id).pipeline_tag
+        print(task)
+        if "tabular-classification" in task:
+            return TabularClassificationPipeline(task=task, model=model_id, device=self.device)
 
         return pipeline(task=task, model=model_id, device=self.device)
 
@@ -264,6 +268,8 @@ class HuggingFaceLoader(BaseLoader):
     def _get_feature_mapping(self, hf_model, hf_dataset):
         if isinstance(hf_model, TextClassificationPipeline):
             task_features = {"text": "string", "label": "class_label"}
+        elif "tabular" in hf_model.pipeline_tag:
+            print(hf_model.model.config)
         else:
             msg = "Unsupported model type."
             raise NotImplementedError(msg)
