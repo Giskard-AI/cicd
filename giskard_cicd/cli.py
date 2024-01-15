@@ -121,7 +121,6 @@ def main():
 
     runner = PipelineRunner(loaders=supported_loaders)
 
-
     runner_kwargs = {
         "loader_id": args.loader,
         "model": args.model,
@@ -156,6 +155,8 @@ def main():
     anonymous_runner_kwargs = runner_kwargs.copy()
     if "hf_token" in anonymous_runner_kwargs:
         anonymous_runner_kwargs.pop("hf_token")
+    if "inference_api_token" in anonymous_runner_kwargs:
+        anonymous_runner_kwargs.pop("inference_api_token")
     logger.info(
         f'Running scanner with {anonymous_runner_kwargs} to evaluate "{args.model}" model'
     )
@@ -227,7 +228,6 @@ def main():
                 )
             except Exception as e:
                 logging.debug(f"Failed to commit to dataset: {e}")
- 
 
     if args.output:
         with open(args.output, "w") as f:
