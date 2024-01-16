@@ -12,6 +12,9 @@ from giskard import Dataset
 from giskard.models.base import BaseModel
 from giskard.models.huggingface import HuggingFaceModel
 from transformers.pipelines import TextClassificationPipeline
+from .tabular_classification_pipeline import TabularClassificationPipeline
+from .tabular_regression_pipeline import TabularRegressionPipeline
+from .tabular_pipeline import TabularPipeline
 import requests
 
 from .huggingface_inf_model import classification_model_from_inference_api
@@ -116,6 +119,7 @@ class HuggingFaceLoader(BaseLoader):
         # map the list of label ids to the list of labels
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
         logger.debug("Wrapping dataset")
+
         gsk_dataset = gsk.Dataset(
             df,
             name=f"HF {dataset}[{dataset_config}]({dataset_split}) for {model} model",
@@ -123,17 +127,26 @@ class HuggingFaceLoader(BaseLoader):
             column_types={"text": "text"},
             validation=False,
         )
+        
 
         logger.debug("Wrapping model")
 
-        gsk_model = self._get_gsk_model(
-            hf_model,
-            [id2label[i] for i in range(len(id2label))],
-            features=feature_mapping,
-            inference_type=inference_type,
-            device=self.device,
-            hf_token=inference_api_token,
-        )
+        if id2label is None and isinstance(hf_model, TabularPipeline):
+            gsk_model = gsk.Model(
+                lambda data: hf_model.predict(data),
+                model_type=hf_model._model_type,
+                name=f"{hf_model.model_id} HF pipeline",
+                feature_names=hf_model.config["features"],
+            )
+        else:
+            gsk_model = self._get_gsk_model(
+                hf_model,
+                [id2label[i] for i in range(len(id2label))],
+                features=feature_mapping,
+                inference_type=inference_type,
+                device=self.device,
+                hf_token=inference_api_token,
+            )
 
         # Optimize batch size
         if self.device.startswith("cuda"):
@@ -174,11 +187,19 @@ class HuggingFaceLoader(BaseLoader):
 
     def load_model(self, model_id):
         from transformers import pipeline
-        from .tabular_loader import TabularClassificationPipeline
-
         task = huggingface_hub.model_info(model_id).pipeline_tag
+        tags = huggingface_hub.model_info(model_id).tags
+        serialization = None
+        if not task and ("tabular" in tags and "classification" in tags):
+            task = ["tabular-classification"]
+
+        if "skops" in tags:
+            serialization = "skops"
+
         if "tabular-classification" in task:
-            return TabularClassificationPipeline(task=task, model=model_id, model_id=model_id)
+            return TabularClassificationPipeline(task=task, model=model_id, model_id=model_id, serialization=serialization)
+        if "tabular-regression" in task:
+            return TabularRegressionPipeline(task=task, model=model_id, model_id=model_id, serialization=serialization)
 
         return pipeline(task=task, model=model_id, device=self.device)
 

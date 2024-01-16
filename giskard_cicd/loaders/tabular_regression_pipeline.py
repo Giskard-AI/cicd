@@ -1,21 +1,12 @@
-from transformers import Pipeline, AutoModel
-import huggingface_hub
-import joblib
-import os
+from .tabular_pipeline import TabularPipeline
 
-class TabularClassificationPipeline(Pipeline):
+class TabularRegressionPipeline(TabularPipeline):
     def __init__(self, *args, **kwargs):
-        self._model_type = "tabular-classification"
+        self._model_type = "regression"
         self._check_model_type(self._model_type)
-        self.pipeline_tag = "tabular-classification"
+        self.pipeline_tag = "tabular-regression"
         # get model parameter from args
-        model_id = kwargs.pop("model", None)
-        self.model_dir = huggingface_hub.snapshot_download(model_id)
-        for f in os.listdir(self.model_dir):
-            if ".joblib" in f:
-                self.model = joblib.load(self.model_dir + "/" + f)
-            if ".pb" in f:
-                self.model = AutoModel.from_pretrained(self.model_dir)
+        super().__init__(*args, **kwargs)
 
     def _sanitize_parameters(self, **kwargs):
         kwargs = super()._sanitize_parameters(**kwargs)
