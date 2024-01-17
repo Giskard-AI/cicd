@@ -8,7 +8,7 @@ import datasets
 import giskard as gsk
 import huggingface_hub
 import pandas as pd
-import requests
+import os
 import torch
 from giskard import Dataset
 from giskard.models.base import BaseModel
@@ -210,25 +210,13 @@ class HuggingFaceLoader(BaseLoader):
                 raise ValueError(
                     "hf_token must be provided when using model_type='hf_inference_api'"
                 )
-
-            def _query_for_inference(payload):
-                url = f"https://api-inference.huggingface.co/models/{model_name}"
-                headers = {"Authorization": f"Bearer {hf_token}"}
-                response = requests.post(url, headers=headers, json=payload)
-                if response.status_code != 200:
-                    logger.debug(
-                        f"Request to inference API returns {response.status_code}"
-                    )
-                try:
-                    return response.json()
-                except Exception:
-                    return {"error": response.content}
+            # To be used later in inference API mmodel
+            os.environ.update([("HF_TOKEN", hf_token)])
 
             return classification_model_from_inference_api(
                 model_name,
                 labels,
                 features,
-                _query_for_inference,
                 inference_api_batch_size=inference_api_batch_size,
             )
 
