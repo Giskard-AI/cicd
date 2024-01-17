@@ -1,5 +1,6 @@
 from typing import Any, Dict
 from transformers import Pipeline, AutoModel, AutoConfig
+import keras
 import huggingface_hub
 import joblib
 import os
@@ -17,7 +18,6 @@ class TabularPipeline(Pipeline):
         serialization = kwargs.pop("serialization", None)
         for f in os.listdir(self.model_dir):
             if serialization == "skops" and ".pkl" in f:
-                print(f"Loading {self.model_dir}/{f}")
                 self.model = load(self.model_dir + "/" + f)
             if ".joblib" in f: # joblib
                 self.model = joblib.load(self.model_dir + "/" + f)
@@ -29,10 +29,12 @@ class TabularPipeline(Pipeline):
                         self.config["features"] = self.config["columns"]
                 else:
                     self.config = config_file
-            if ".pb" in f: # keras
+            if ".pt" in f: # pytorch
                 self.model = AutoModel.from_pretrained(self.model_dir)
                 if "config.json" in f:
                     self.model.config = AutoConfig.from_pretrained(self.model_dir)
+            if "model.pb" in f: # keras
+                self.model = keras.models.load_model(self.model_dir)
             if "modelRun.json" in f:
                 raise ValueError(
                     "MLConsole models are not suppoerted."

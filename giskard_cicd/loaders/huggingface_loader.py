@@ -137,6 +137,7 @@ class HuggingFaceLoader(BaseLoader):
                 model_type=hf_model._model_type,
                 name=f"{hf_model.model_id} HF pipeline",
                 feature_names=hf_model.config["features"],
+                classification_labels=hf_model.config["target_mapping"].values(),
             )
         else:
             gsk_model = self._get_gsk_model(
