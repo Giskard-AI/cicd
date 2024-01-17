@@ -48,6 +48,7 @@ def giskard_hub_upload_helper(
     args, report, url, project_key, project, key, hf_token=None, unlock_token=None
 ):
     need_relock = False
+    test_suite_url = None
     try:
         client = GiskardClient(
             url=url,
@@ -60,7 +61,7 @@ def giskard_hub_upload_helper(
 
         if not unlock_resp["unlocked"] and unlock_token is None:
             logger.warn("Cannot upload to a locked Giskard Hub without unlock token")
-            return
+            return test_suite_url
         elif not unlock_resp["unlocked"]:
             resp = client.session.post(
                 GISKARD_HUB_UNLOCK_STATUS_ENDPOINT,
@@ -74,7 +75,7 @@ def giskard_hub_upload_helper(
                 logger.warn(
                     "Cannot upload to a locked Giskard Hub due to wrong unlock token"
                 )
-                return
+                return test_suite_url
             # Unlock succeed: remeber to lock it
             need_relock = resp["unlocked"]
 
@@ -98,12 +99,16 @@ def giskard_hub_upload_helper(
             f'Test suite for "{args.model}" model, by Giskard bot'
         )
         suite.upload(client, project_key)
+        # Generate URL for test suite
+        test_suite_url = (
+            f"{url}/main/projects/{project_key}/test-suite/{suite.id}/overview"
+        )
     except GiskardError as e:
         logger.warn(f"Uploading project failed: {e}")
-        return
+        return test_suite_url
     except JSONDecodeError as e:
         logger.warn(f"Uploading project failed due to response decoding: {e}")
-        return
+        return test_suite_url
 
     finally:
         if need_relock:
@@ -116,3 +121,4 @@ def giskard_hub_upload_helper(
                 },
             )
             logger.debug("Space is relocked")
+    return test_suite_url
