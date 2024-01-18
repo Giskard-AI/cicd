@@ -7,11 +7,11 @@ giskard_scanner = "giskard_cicd.cli:main"
 
 [project]
 name = "giskard_cicd"
-version = "0.1.0"
+version = "0.2.0"
 readme = "README.md"
 dependencies = [
     "datasets",
-    "giskard >= 2.1.0",
+    "giskard >= 2.3.0",
     "huggingface_hub",
     "torch",
     "transformers",
