@@ -1,13 +1,13 @@
 import logging
 import os
-from time import sleep
 
 import numpy as np
 import pandas as pd
-import requests
+from ..automation.hf_api import request_inf_api
 from giskard import Model
 
 logger = logging.getLogger(__file__)
+
 
 
 def classification_model_from_inference_api(
@@ -24,7 +24,16 @@ def classification_model_from_inference_api(
         raise NotImplementedError(
             f"Not supported model type: {model_type}. Only text_classification models are supported for now."
         )
-
+    
+    # Utitlity to extract scores
+    def extract_scores(data):
+        if isinstance(data, dict):
+            return [data.get('score')] + sum((extract_scores(v) for v in data.values()), [])
+        elif isinstance(data, list):
+            return sum((extract_scores(v) for v in data), [])
+        else:
+            return []
+    
     # Utility to query HF inference API
     def query(payload):
         hf_token = os.environ.get("HF_TOKEN")
@@ -33,41 +42,11 @@ def classification_model_from_inference_api(
                 "Missing Hugging Face access token. Please provide it in `HF_TOKEN` environment variable"
             )
 
-        # Allow to customize the HF API endpoint
-        # See https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables#hfinferenceendpoint
         hf_inference_api_endpoint = os.environ.get(
             "HF_INFERENCE_ENDPOINT", default="https://api-inference.huggingface.co"
         )
-        url = f"{hf_inference_api_endpoint}/models/{model_name}"
         headers = {"Authorization": f"Bearer {hf_token}"}
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code != 200:
-            logger.debug(f"Request to inference API returns {response.status_code}")
-        try:
-            return response.json()
-        except Exception:
-            return {"error": response.content}
-
-    # Utitlity to extract scores
-    def extract_scores(data):
-        scores = []
-
-        if isinstance(data, dict):
-            # extract 'score' value if it exists
-            score = data.get("score")
-            if score is not None:
-                scores.append(score)
-
-            # Recursively process dictionary values
-            for value in data.values():
-                scores.extend(extract_scores(value))
-
-        elif isinstance(data, list):
-            # recursively process list elements
-            for element in data:
-                scores.extend(extract_scores(element))
-
-        return scores
+        return request_inf_api(hf_inference_api_endpoint, model_name, headers, payload)
 
     # Text classification: limit the scope so that the model does not import giskard_cicd
     def predict_from_text_classification_inference(df: pd.DataFrame) -> np.ndarray:
@@ -82,15 +61,11 @@ def classification_model_from_inference_api(
             logger.debug(
                 f"Requesting {len(inputs)} rows of data: ({i}/{len(raw_inputs)})"
             )
-            output = {"error": "First attemp"}
-            while "error" in output:
-                # Retry
-                logger.debug(output)
-                sleep(0.5)
-                output = query(payload)
 
-            for i in output:
-                results.append(extract_scores(i))
+            outputs = query(payload)
+
+            for output in outputs:
+                results.append(extract_scores(output))
 
         logger.debug(f"Finished, got {len(results)} results")
 
