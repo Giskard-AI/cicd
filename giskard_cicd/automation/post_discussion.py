@@ -5,6 +5,7 @@ import re
 from time import sleep
 from .utils import ISSUE_GROUPS
 
+GISKARD_HUB_URL = "https://huggingface.co/spaces/giskardai/giskard"
 
 def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count):
     opening = """
@@ -21,20 +22,21 @@ def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_c
 
 
 def construct_closing(test_suite_url=None):
-    giskard_hub_link_md = f"[Test Suite in our Giskard Space]({test_suite_url})"
+    giskard_hub_wording = f"We've generated test suites according to your scan results! Checkout the [Test Suite in our Giskard Space]({test_suite_url})"
+    
     if test_suite_url is None:
-        test_suite_url = "https://huggingface.co/spaces/giskardai/giskard"
-        giskard_hub_link_md = f"[Giskard Space]({test_suite_url})"
+        giskard_hub_wording = f"Checkout out the [Giskard Space]({GISKARD_HUB_URL}) and improve your model."
+    
     disclaimer = """
     \n\n**Disclaimer**: it's important to note that automated scans may produce false positives or miss certain vulnerabilities. We encourage you to review the findings and assess the impact accordingly.\n
     """
-    whatsnext = f"""
-    \n### 💡 What's Next?\n- Checkout the {giskard_hub_link_md} and improve your model. \n - [The Giskard community](https://github.com/Giskard-AI/giskard) is always buzzing with ideas. 🐢🤔 What do you want to see next? Your feedback is our favorite fuel, so drop your thoughts in the community forum! 🗣️💬 Together, we're building something extraordinary.\n
+    whatsnext = """
+    \n### 💡 What's Next?\n- [The Giskard community](https://github.com/Giskard-AI/giskard) is always buzzing with ideas. 🐢🤔 What do you want to see next? Your feedback is our favorite fuel, so drop your thoughts in the community forum! 🗣️💬 Together, we're building something extraordinary.\n
     """
     thanks = """
     \n### 🙌 Big Thanks!\nWe're grateful to have you on this adventure with us. 🚀🌟 Here's to more breakthroughs, laughter, and code magic! 🥂✨ Keep hugging that code and spreading the love! 💻 #Giskard #Huggingface #AISafety 🌈👏 Your enthusiasm, feedback, and contributions are what seek. 🌟 Keep being awesome!\n
     """
-    return disclaimer + whatsnext + thanks
+    return giskard_hub_wording + disclaimer + whatsnext + thanks
 
 
 def construct_post_content(
