@@ -39,7 +39,7 @@ class HuggingFaceLoader(BaseLoader):
 
     def load_giskard_model_dataset(
         self,
-        model,
+        model=None,
         dataset=None,
         dataset_config=None,
         dataset_split=None,
@@ -61,7 +61,7 @@ class HuggingFaceLoader(BaseLoader):
         # Loading the model is easy. What is complicated is to get the dataset.
         # So we start by trying to get the dataset, because if we fail, we don't
         # want to waste time downloading the model.
-        hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model)
+        hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split)
         # Flatten dataset to avoid `datasets.DatasetDict`
         hf_dataset = self._flatten_hf_dataset(hf_dataset, dataset_split)
 
@@ -108,7 +108,6 @@ class HuggingFaceLoader(BaseLoader):
             # rewrite this lambda function to include all labels
             df.label = df.label.apply(lambda x: id2label[x[0]])
         else:
-            # TODO: when the label for test is not provided, what do we do?
             df["label"] = df.label.apply(lambda x: id2label[x] if x >= 0 else "-1")
         # map the list of label ids to the list of labels
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
@@ -140,7 +139,7 @@ class HuggingFaceLoader(BaseLoader):
         return gsk_model, gsk_dataset
 
     def load_dataset(
-        self, dataset_id, dataset_config=None, dataset_split=None, model_id=None
+        self, dataset_id, dataset_config=None, dataset_split=None
     ):
         """Load a dataset from the HuggingFace Hub."""
         logger.debug(
@@ -251,7 +250,6 @@ class HuggingFaceLoader(BaseLoader):
                 if k.startswith("train"):
                     continue
                 elif k.startswith(data_split):
-                    # TODO: only support one split for now
                     # Maybe we can merge all the datasets into one
                     flat_dataset = hf_dataset[k]
                     break
@@ -353,7 +351,7 @@ class HuggingFaceLoader(BaseLoader):
                     return model.batch_size // 2
 
                 ds_slice = dataset.slice(
-                    lambda df: df.sample(num_samples), row_level=False
+                    lambda df, num_samples=num_samples: df.sample(num_samples), row_level=False
                 )
 
                 t_start = time.perf_counter_ns()
