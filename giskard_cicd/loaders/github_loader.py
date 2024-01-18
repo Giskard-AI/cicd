@@ -13,7 +13,7 @@ logger = logging.getLogger(__file__)
 try:
     from giskard.utils.file_utils import get_file_name
 except ImportError:
-    # Using a Giskard version older than 2.2.0
+    # Using a Giskard version older than 2.3.0
     logger.warn(
         "You might be using a outdated Giskard version, please upgrade for a better experience"
     )
