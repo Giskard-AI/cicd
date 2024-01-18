@@ -37,9 +37,10 @@ class HuggingFaceLoader(BaseLoader):
         dataset_id = model_card["datasets"][0]
         return dataset_id
 
+
     def load_giskard_model_dataset(
         self,
-        model,
+        model=None,
         dataset=None,
         dataset_config=None,
         dataset_split=None,
@@ -50,18 +51,19 @@ class HuggingFaceLoader(BaseLoader):
         inference_api_token=None,
         inference_api_batch_size=200,
     ):
+        model_id = model
         # If no dataset was provided, we try to get it from the model metadata.
         if dataset is None:
             logger.debug(
                 "No dataset provided. Trying to get it from the model metadata."
             )
-            dataset = self._find_dataset_id_from_model(model)
+            dataset = self._find_dataset_id_from_model(model_id)
             logger.debug(f"Found dataset `{dataset}`.")
 
         # Loading the model is easy. What is complicated is to get the dataset.
         # So we start by trying to get the dataset, because if we fail, we don't
         # want to waste time downloading the model.
-        hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model)
+        hf_dataset = self.load_dataset(dataset, dataset_config, dataset_split, model_id)
         # Flatten dataset to avoid `datasets.DatasetDict`
         hf_dataset = self._flatten_hf_dataset(hf_dataset, dataset_split)
 
@@ -70,12 +72,13 @@ class HuggingFaceLoader(BaseLoader):
         else:
             logger.warning("Loaded dataset is not a Dataset object, the scan may fail.")
 
-        # Load the model.
-        hf_model = self.load_model(model)
+
+        hf_model = None
 
         # Check that the dataset has the good feature names for the task.
         logger.debug("Retrieving feature mapping")
         if manual_feature_mapping is None:
+            hf_model = self.load_model(model_id)
             feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
             logger.warn(
                 f'Feature mapping is not provided, using extracted "{feature_mapping}"'
@@ -98,6 +101,8 @@ class HuggingFaceLoader(BaseLoader):
         # @TODO: currently for classification models only.
         logger.debug("Retrieving classification label mapping")
         if classification_label_mapping is None:
+            if hf_model is None:
+                hf_model = self.load_model(model_id)
             id2label = hf_model.model.config.id2label
             logger.warn(f'Label mapping is not provided, using "{id2label}" from model')
         else:
@@ -108,14 +113,14 @@ class HuggingFaceLoader(BaseLoader):
             # rewrite this lambda function to include all labels
             df.label = df.label.apply(lambda x: id2label[x[0]])
         else:
-            # TODO: when the label for test is not provided, what do we do?
+            # @TODO: when the label for test is not provided, what do we do?
             df["label"] = df.label.apply(lambda x: id2label[x] if x >= 0 else "-1")
         # map the list of label ids to the list of labels
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
         logger.debug("Wrapping dataset")
         gsk_dataset = gsk.Dataset(
             df,
-            name=f"HF {dataset}[{dataset_config}]({dataset_split}) for {model} model",
+            name=f"HF {dataset}[{dataset_config}]({dataset_split}) for {model_id} model",
             target="label",
             column_types={"text": "text"},
             validation=False,
@@ -124,6 +129,7 @@ class HuggingFaceLoader(BaseLoader):
         logger.debug("Wrapping model")
 
         gsk_model = self._get_gsk_model(
+            model_id,
             hf_model,
             [id2label[i] for i in range(len(id2label))],
             features=feature_mapping,
@@ -179,6 +185,7 @@ class HuggingFaceLoader(BaseLoader):
 
     def _get_gsk_model(
         self,
+        model_id,
         hf_model,
         labels,
         features=None,
@@ -187,13 +194,14 @@ class HuggingFaceLoader(BaseLoader):
         hf_token=None,
         inference_api_batch_size=200,
     ):
-        model_name = hf_model.model.config._name_or_path
+        if hf_model is None and inference_type == "hf_pipeline":
+            hf_model = self.load_model(model_id)
         logger.info(f"Loading '{inference_type}' model from Hugging Face")
         if inference_type == "hf_pipeline":
             return HuggingFaceModel(
                 hf_model,
                 model_type="classification",
-                name=f"{model_name} HF pipeline",
+                name=f"{model_id} HF pipeline",
                 data_preprocessing_function=lambda df: df.text.tolist(),
                 classification_labels=labels,
                 batch_size=None,
@@ -214,7 +222,7 @@ class HuggingFaceLoader(BaseLoader):
             os.environ.update([("HF_TOKEN", hf_token)])
 
             return classification_model_from_inference_api(
-                model_name,
+                model_id,
                 labels,
                 features,
                 inference_api_batch_size=inference_api_batch_size,
