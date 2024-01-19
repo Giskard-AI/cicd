@@ -184,10 +184,11 @@ def main():
             pickle.dump(report, f)
         print(f"Scan report persisted in {fn}")
 
+    test_suite_url = None
     if args.giskard_hub_api_key is not None:
         # Upload to a Giskard Hub instance
         logger.info(f"Uploading to {args.giskard_hub_url}")
-        giskard_hub_upload_helper(
+        test_suite_url = giskard_hub_upload_helper(
             args,
             report,
             url=args.giskard_hub_url,
@@ -216,6 +217,7 @@ def main():
             args.dataset_config,
             args.dataset_split,
             report,
+            test_suite_url,
         )
 
         if args.leaderboard_dataset:  # Commit to leaderboard dataset

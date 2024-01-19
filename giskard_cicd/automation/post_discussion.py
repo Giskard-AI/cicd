@@ -1,9 +1,11 @@
+from typing import Optional
 import huggingface_hub as hf_hub
 import markdown
 import re
 from time import sleep
 from .utils import ISSUE_GROUPS
 
+GISKARD_HUB_URL = "https://huggingface.co/spaces/giskardai/giskard"
 
 def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count):
     opening = """
@@ -19,21 +21,35 @@ def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_c
     return opening
 
 
-def construct_closing():
+def construct_closing(test_suite_url=None):
+    giskard_hub_wording = f"""
+    \n\nWe've generated test suites according to your scan results! Checkout the [Test Suite in our Giskard Space]({test_suite_url})
+    """
+    
+    if test_suite_url is None:
+        giskard_hub_wording = f"""
+        \n\nCheckout out the [Giskard Space]({GISKARD_HUB_URL}) and improve your model.
+        """
+    
     disclaimer = """
     \n\n**Disclaimer**: it's important to note that automated scans may produce false positives or miss certain vulnerabilities. We encourage you to review the findings and assess the impact accordingly.\n
     """
     whatsnext = """
-    \n### 💡 What's Next?\n- Checkout the [Giskard Space](https://huggingface.co/spaces/giskardai/giskard) and improve your model. \n - [The Giskard community](https://github.com/Giskard-AI/giskard) is always buzzing with ideas. 🐢🤔 What do you want to see next? Your feedback is our favorite fuel, so drop your thoughts in the community forum! 🗣️💬 Together, we're building something extraordinary.\n
+    \n### 💡 What's Next?\n- [The Giskard community](https://github.com/Giskard-AI/giskard) is always buzzing with ideas. 🐢🤔 What do you want to see next? Your feedback is our favorite fuel, so drop your thoughts in the community forum! 🗣️💬 Together, we're building something extraordinary.\n
     """
     thanks = """
     \n### 🙌 Big Thanks!\nWe're grateful to have you on this adventure with us. 🚀🌟 Here's to more breakthroughs, laughter, and code magic! 🥂✨ Keep hugging that code and spreading the love! 💻 #Giskard #Huggingface #AISafety 🌈👏 Your enthusiasm, feedback, and contributions are what seek. 🌟 Keep being awesome!\n
     """
-    return disclaimer + whatsnext + thanks
+    return giskard_hub_wording + disclaimer + whatsnext + thanks
 
 
 def construct_post_content(
-    report, dataset_id, dataset_config, dataset_split, scan_report=None
+    report,
+    dataset_id,
+    dataset_config,
+    dataset_split,
+    scan_report=None,
+    test_suite_url=None,
 ):
     if scan_report is not None:
         vulnerability_count = len(scan_report.scan_result.issues)
@@ -45,7 +61,7 @@ def construct_post_content(
         dataset_id, dataset_config, dataset_split, vulnerability_count
     )
 
-    closing = construct_closing()
+    closing = construct_closing(test_suite_url)
 
     content = f"{opening}{report}{closing}"
     return content
@@ -81,13 +97,15 @@ def post_issue_as_comment(discussion, issue, token, repo_id):
     return comment
 
 
-def post_too_long_report_in_comments(discussion, report, token, repo_id):
+def post_too_long_report_in_comments(
+    discussion, report, token, repo_id, test_suite_url=None
+):
     sub_reports = separate_report_by_issues(report)
 
     for issue in sub_reports:
         post_issue_as_comment(discussion, issue, token, repo_id)
 
-    post_issue_as_comment(discussion, construct_closing(), token, repo_id)
+    post_issue_as_comment(discussion, construct_closing(test_suite_url), token, repo_id)
     return discussion
 
 
@@ -100,6 +118,7 @@ def create_discussion(
     dataset_config,
     dataset_split,
     scan_report: object,
+    test_suite_url: Optional[str],
 ):
     if len(report) > 60000:
         vulnerability_count = len(scan_report.scan_result.issues)
@@ -116,11 +135,18 @@ def create_discussion(
         # wait for the discussion to be created
         # otherwise, the comments will be posted before the discussion description
         sleep(1)
-        post_too_long_report_in_comments(discussion, report, hf_token, repo_id)
+        post_too_long_report_in_comments(
+            discussion, report, hf_token, repo_id, test_suite_url=test_suite_url
+        )
         return discussion
 
     description = construct_post_content(
-        report, dataset_id, dataset_config, dataset_split, scan_report
+        report,
+        dataset_id,
+        dataset_config,
+        dataset_split,
+        scan_report,
+        test_suite_url=test_suite_url,
     )
 
     discussion = hf_hub.create_discussion(
