@@ -100,9 +100,7 @@ def giskard_hub_upload_helper(
         )
         suite.upload(client, project_key)
         # Generate URL for test suite
-        test_suite_url = (
-            f"{url}/main/projects/{project_key}/test-suite/{suite.id}/overview"
-        )
+        test_suite_url = f"{url}/main/projects/{project_key}/testing/suite/{suite.id}"
     except GiskardError as e:
         logger.warn(f"Uploading project failed: {e}")
         return test_suite_url
