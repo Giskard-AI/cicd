@@ -49,24 +49,14 @@ def classification_model_from_inference_api(
             return {"error": response.content}
 
     # Utitlity to extract scores
-    def extract_scores(data):
+    def extract_scores(outputs, labels):
         scores = []
-
-        if isinstance(data, dict):
-            # extract 'score' value if it exists
-            score = data.get("score")
-            if score is not None:
-                scores.append(score)
-
-            # Recursively process dictionary values
-            for value in data.values():
-                scores.extend(extract_scores(value))
-
-        elif isinstance(data, list):
-            # recursively process list elements
-            for element in data:
-                scores.extend(extract_scores(element))
-
+        for output in outputs:
+            print(output)
+            # output shape: [{"label": "LABEL", "score": 0.999}, ...]
+            # sort the output by label index
+            sorted_output = sorted(output, key=lambda x: labels.index(x["label"]))
+            scores.extend([x["score"] for x in sorted_output])
         return scores
 
     # Text classification: limit the scope so that the model does not import giskard_cicd
@@ -90,7 +80,11 @@ def classification_model_from_inference_api(
                 output = query(payload)
 
             for i in output:
-                results.append(extract_scores(i))
+                scores = []
+                sorted_output = sorted(i, key=lambda x: labels.index(x["label"]))
+                scores.extend([x["score"] for x in sorted_output])
+                results.append(scores)
+                
 
         logger.debug(f"Finished, got {len(results)} results")
 
