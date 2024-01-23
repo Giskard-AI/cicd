@@ -68,15 +68,15 @@ def classification_model_from_inference_api(
                 sleep(0.5)
                 output = query(payload)
 
-            try:
-                for i in output:   
+            
+            for i in output:   
+                try:                   
                     sorted_output = sorted(i, key=lambda x: labels.index(x["label"]))
                     results.append([x["score"] for x in sorted_output])
-            except Exception as e:
-                logger.debug(f"Error: {e}")
-                logger.error(f"Unexpected format of output: {output}")
-                   
-                
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
+                    logger.error(f"Unexpected format of output: {output}")
+                    results.append([-.1] * len(labels))
 
         logger.debug(f"Finished, got {len(results)} results")
 
