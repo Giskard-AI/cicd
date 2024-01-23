@@ -48,17 +48,6 @@ def classification_model_from_inference_api(
         except Exception:
             return {"error": response.content}
 
-    # Utitlity to extract scores
-    def extract_scores(outputs, labels):
-        scores = []
-        for output in outputs:
-            print(output)
-            # output shape: [{"label": "LABEL", "score": 0.999}, ...]
-            # sort the output by label index
-            sorted_output = sorted(output, key=lambda x: labels.index(x["label"]))
-            scores.extend([x["score"] for x in sorted_output])
-        return scores
-
     # Text classification: limit the scope so that the model does not import giskard_cicd
     def predict_from_text_classification_inference(df: pd.DataFrame) -> np.ndarray:
         results = []
@@ -80,10 +69,8 @@ def classification_model_from_inference_api(
                 output = query(payload)
 
             for i in output:
-                scores = []
                 sorted_output = sorted(i, key=lambda x: labels.index(x["label"]))
-                scores.extend([x["score"] for x in sorted_output])
-                results.append(scores)
+                results.append([x["score"] for x in sorted_output])
                 
 
         logger.debug(f"Finished, got {len(results)} results")
