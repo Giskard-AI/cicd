@@ -48,27 +48,6 @@ def classification_model_from_inference_api(
         except Exception:
             return {"error": response.content}
 
-    # Utitlity to extract scores
-    def extract_scores(data):
-        scores = []
-
-        if isinstance(data, dict):
-            # extract 'score' value if it exists
-            score = data.get("score")
-            if score is not None:
-                scores.append(score)
-
-            # Recursively process dictionary values
-            for value in data.values():
-                scores.extend(extract_scores(value))
-
-        elif isinstance(data, list):
-            # recursively process list elements
-            for element in data:
-                scores.extend(extract_scores(element))
-
-        return scores
-
     # Text classification: limit the scope so that the model does not import giskard_cicd
     def predict_from_text_classification_inference(df: pd.DataFrame) -> np.ndarray:
         results = []
@@ -89,8 +68,15 @@ def classification_model_from_inference_api(
                 sleep(0.5)
                 output = query(payload)
 
-            for i in output:
-                results.append(extract_scores(i))
+            
+            for single_output in output:   
+                try:                   
+                    sorted_output = sorted(single_output, key=lambda x: labels.index(x["label"]))
+                    results.append([x["score"] for x in sorted_output])
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
+                    logger.error(f"Unexpected format of output: {output}")
+                    results.append([-.1] * len(labels))
 
         logger.debug(f"Finished, got {len(results)} results")
 
