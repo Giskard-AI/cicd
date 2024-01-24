@@ -69,9 +69,9 @@ def classification_model_from_inference_api(
                 output = query(payload)
 
             
-            for i in output:   
+            for single_output in output:   
                 try:                   
-                    sorted_output = sorted(i, key=lambda x: labels.index(x["label"]))
+                    sorted_output = sorted(single_output, key=lambda x: labels.index(x["label"]))
                     results.append([x["score"] for x in sorted_output])
                 except Exception as e:
                     logger.debug(f"Error: {e}")
