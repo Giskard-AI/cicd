@@ -75,7 +75,9 @@ def classification_model_from_inference_api(
                     )
                     results.append([x["score"] for x in sorted_output])
                 except Exception as e:
-                    logger.error(f"Unexpected format of output: {single_output}, {e}")
+                    logger.error(
+                        f"Unexpected format of output: {single_output}, {e}, {labels}"
+                    )
                     results.append([-0.1] * len(labels))
 
         logger.debug(f"Finished, got {len(results)} results")
