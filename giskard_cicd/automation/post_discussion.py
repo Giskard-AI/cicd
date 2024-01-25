@@ -11,9 +11,14 @@ def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_c
     opening = """
     \nHi Team,\nThis is a report from <b>Giskard Scan 🐢</b>.<br />
     """
-    opening += f"""
-    \nWe have identified {vulnerability_count} potential vulnerabilities in your model based on an automated scan.
-    """
+    if vulnerability_count == 0:
+        opening += """
+        \nWe have not identified any potential vulnerabilities in your model based on an automated scan.
+        """
+    else:
+        opening += f"""
+        \nWe have identified {vulnerability_count} potential vulnerabilities in your model based on an automated scan.
+        """
     if dataset_id is not None:
         opening += f"""
         \nThis automated analysis evaluated the model on the dataset {dataset_id} (subset `{dataset_config}`, split `{dataset_split}`).
@@ -28,7 +33,7 @@ def construct_closing(test_suite_url=None):
     
     if test_suite_url is None:
         giskard_hub_wording = f"""
-        \n\nCheckout out the [Giskard Space]({GISKARD_HUB_URL}) and improve your model.
+        \n\nCheckout out the [Giskard Space]({GISKARD_HUB_URL}) and test your model.
         """
     
     disclaimer = """
