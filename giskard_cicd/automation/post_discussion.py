@@ -9,7 +9,7 @@ GISKARD_HUB_URL = "https://huggingface.co/spaces/giskardai/giskard"
 
 def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count):
     opening = """
-    \nHi Team,\nThis is a report from <b>Giskard Scan 🐢</b>.<br />
+    \nHi Team,\n\nThis is a report from <b>Giskard Bot Scan 🐢</b>.<br />
     """
     if vulnerability_count == 0:
         opening += """
