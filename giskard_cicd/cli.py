@@ -69,6 +69,7 @@ def main():
     parser.add_argument(
         "--inference_type",
         help="The inference type to use. Default is `hf_inference_api`.",
+        default="hf_inference_api",
     )
     parser.add_argument(
         "--inference_api_token", help="The HF token to call inference API with."
