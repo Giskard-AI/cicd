@@ -68,6 +68,21 @@ def classification_model_from_inference_api(
                 sleep(0.5)
                 output = query(payload)
 
+                if "error" in output:
+                    if "warnings" in output and "Input is too long" in output["error"]:
+                        """
+                        When input is too long:
+                        {
+                            'error': 'Input is too long, try to truncate or use a paramater'
+                                + 'to handle this: The size of tensor a (702) must match the'
+                                + 'size of tensor b (512) at non-singleton dimension 1',
+                            'warnings': [...],
+                        }
+                        """
+                        raise ValueError(
+                            f"HF inference API cannot handle too long input: {output['error']}"
+                        )
+
             for single_output in output:
                 try:
                     sorted_output = sorted(
