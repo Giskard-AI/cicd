@@ -100,4 +100,16 @@ Current implementation has two loaders:
   $   python cli.py --loader huggingface --model distilbert-base-uncased-finetuned-sst-2-english --dataset_split validation --scan_config [Path to scan_config.yaml] --hf_token [Huggingface Token]
   ```
 
+- Manually input label and feature mapping
+
+  **Label Mapping**: map the dataset labels to model label **id**s. Use the labels2id or id2labels in model card to help you if needed. This should be **idx to key**. Example:
+  ```
+  --label_mapping "{'0':'negative','1':'positive'}"
+  ```
+
+  **Feature Mapping**: map the feature labels directly from **key to key**.
+  ```
+  --feature-mapping "{'sentence': 'text'}"
+  ```
+
 This will launch a pipeline that will load the model and dataset from the HuggingFace hub, run the scan and generate a report in HTML format (for now).
