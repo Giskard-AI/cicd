@@ -14,6 +14,7 @@ from giskard import Dataset
 from giskard.models.base import BaseModel
 from giskard.models.huggingface import HuggingFaceModel
 from transformers.pipelines import TextClassificationPipeline
+import numpy as np
 
 from .base_loader import BaseLoader, DatasetError
 from .huggingface_inf_model import classification_model_from_inference_api
@@ -108,13 +109,16 @@ class HuggingFaceLoader(BaseLoader):
         else:
             id2label = classification_label_mapping
 
-        if "label" in df and isinstance(df.label[0], list):
+        label_keys = [k for k in df.keys() if k.startswith("label")]
+        label_key = label_keys[0]
+
+        if label_key and isinstance(df[label_key][0], list) or isinstance(df[label_key][0], np.ndarray):
             # need to include all labels
             # rewrite this lambda function to include all labels
-            df.label = df.label.apply(lambda x: id2label[x[0]])
+            df[label_key] = df[label_key].apply(lambda x: id2label[x[0]])
         else:
             # @TODO: when the label for test is not provided, what do we do?
-            df["label"] = df.label.apply(lambda x: id2label[x] if x >= 0 else "-1")
+            df[label_key] = df[label_key].apply(lambda x: id2label[x] if x >= 0 else "-1")
         # map the list of label ids to the list of labels
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
         logger.debug("Wrapping dataset")
