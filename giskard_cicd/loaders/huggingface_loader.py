@@ -141,7 +141,7 @@ class HuggingFaceLoader(BaseLoader):
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
         logger.debug("Wrapping dataset")
         gsk_dataset = gsk.Dataset(
-            df[:100],
+            df,
             name=f"HF {dataset}[{dataset_config}]({dataset_split}) for {model_id} model",
             target="label",
             column_types={"text": "text"},
