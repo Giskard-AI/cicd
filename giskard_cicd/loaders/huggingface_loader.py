@@ -22,6 +22,20 @@ from .huggingface_inf_model import classification_model_from_inference_api
 logger = logging.getLogger(__file__)
 
 
+class HuggingFacePipelineModel(HuggingFaceModel):
+    def _get_predictions(self, data):
+        # Override _get_predictions method, which is called by HuggingFaceModel
+        if isinstance(data, pd.DataFrame):
+            data = data.to_dict(orient="records")
+        _predictions = [
+            {p["label"]: p["score"] for p in pl}
+            for pl in self.model(data, top_k=None, truncation=True)
+        ]
+        return [
+            [p[label] for label in self.classification_labels] for p in _predictions
+        ]
+
+
 class HuggingFaceLoader(BaseLoader):
     def __init__(self, device=None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -37,7 +51,6 @@ class HuggingFaceLoader(BaseLoader):
         # Take the first one
         dataset_id = model_card["datasets"][0]
         return dataset_id
-
 
     def load_giskard_model_dataset(
         self,
@@ -72,7 +85,6 @@ class HuggingFaceLoader(BaseLoader):
             logger.debug(f"Loaded dataset with {hf_dataset.size_in_bytes} bytes")
         else:
             logger.warning("Loaded dataset is not a Dataset object, the scan may fail.")
-
 
         hf_model = None
 
@@ -112,18 +124,24 @@ class HuggingFaceLoader(BaseLoader):
         label_keys = [k for k in df.keys() if k.startswith("label")]
         label_key = label_keys[0]
 
-        if label_key and isinstance(df[label_key][0], list) or isinstance(df[label_key][0], np.ndarray):
+        if (
+            label_key
+            and isinstance(df[label_key][0], list)
+            or isinstance(df[label_key][0], np.ndarray)
+        ):
             # need to include all labels
             # rewrite this lambda function to include all labels
             df[label_key] = df[label_key].apply(lambda x: id2label[x[0]])
         else:
             # @TODO: when the label for test is not provided, what do we do?
-            df[label_key] = df[label_key].apply(lambda x: id2label[x] if x >= 0 else "-1")
+            df[label_key] = df[label_key].apply(
+                lambda x: id2label[x] if x >= 0 else "-1"
+            )
         # map the list of label ids to the list of labels
         # df["label"] = df.label.apply(lambda x: [id2label[i] for i in x])
         logger.debug("Wrapping dataset")
         gsk_dataset = gsk.Dataset(
-            df,
+            df[:100],
             name=f"HF {dataset}[{dataset_config}]({dataset_split}) for {model_id} model",
             target="label",
             column_types={"text": "text"},
@@ -202,7 +220,7 @@ class HuggingFaceLoader(BaseLoader):
             hf_model = self.load_model(model_id)
         logger.info(f"Loading '{inference_type}' model from Hugging Face")
         if inference_type == "hf_pipeline":
-            return HuggingFaceModel(
+            return HuggingFacePipelineModel(
                 hf_model,
                 model_type="classification",
                 name=f"{model_id} HF pipeline",
