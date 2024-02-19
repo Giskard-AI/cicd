@@ -4,7 +4,7 @@ from time import sleep
 
 import numpy as np
 import pandas as pd
-import requests
+from requests_toolbelt import sessions
 from giskard import Model
 
 logger = logging.getLogger(__file__)
@@ -25,6 +25,15 @@ def classification_model_from_inference_api(
             f"Not supported model type: {model_type}. Only text_classification models are supported for now."
         )
 
+    # Allow to customize the HF API endpoint and reuse a seesion
+    # See https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables#hfinferenceendpoint
+    session = sessions.BaseUrlSession(
+        os.environ.get(
+            "HF_INFERENCE_ENDPOINT", default="https://api-inference.huggingface.co"
+        )
+    )
+    url = f"models/{model_name}"
+
     # Utility to query HF inference API
     def query(payload):
         hf_token = os.environ.get("HF_TOKEN")
@@ -33,14 +42,8 @@ def classification_model_from_inference_api(
                 "Missing Hugging Face access token. Please provide it in `HF_TOKEN` environment variable"
             )
 
-        # Allow to customize the HF API endpoint
-        # See https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables#hfinferenceendpoint
-        hf_inference_api_endpoint = os.environ.get(
-            "HF_INFERENCE_ENDPOINT", default="https://api-inference.huggingface.co"
-        )
-        url = f"{hf_inference_api_endpoint}/models/{model_name}"
         headers = {"Authorization": f"Bearer {hf_token}"}
-        response = requests.post(url, headers=headers, json=payload)
+        response = session.post(url, headers=headers, json=payload)
         if response.status_code != 200:
             logger.debug(f"Request to inference API returns {response.status_code}")
         try:
