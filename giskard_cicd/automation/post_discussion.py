@@ -28,12 +28,12 @@ def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_c
 
 def construct_closing(test_suite_url=None):
     giskard_hub_wording = f"""
-    \n\nWe've generated test suites according to your scan results! Checkout the [Test Suite in our Giskard Space]({test_suite_url})
+    \n\nWe've generated test suites according to your scan results! Checkout the [Test Suite in our Giskard Space]({test_suite_url}) and [Giskard Documentation](https://docs.giskard.ai/en/stable/getting_started/quickstart/quickstart_nlp.html) to learn more about how to test your model.
     """
     
     if test_suite_url is None:
         giskard_hub_wording = f"""
-        \n\nCheckout out the [Giskard Space]({GISKARD_HUB_URL}) and test your model.
+        \n\nCheckout out the [Giskard Space]({GISKARD_HUB_URL}) and [Giskard Documentation](https://docs.giskard.ai/en/stable/getting_started/quickstart/quickstart_nlp.html) to learn more about how to test your model.
         """
     
     disclaimer = """
