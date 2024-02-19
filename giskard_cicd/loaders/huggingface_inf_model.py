@@ -79,9 +79,17 @@ def classification_model_from_inference_api(
                             'warnings': [...],
                         }
                         """
-                        raise ValueError(
-                            f"HF inference API cannot handle too long input: {output['error']}"
-                        )
+                        if (
+                            "parameters" in payload
+                            and "truncation" in payload["parameters"]
+                            and payload["parameters"]
+                        ):
+                            # The model still cannot handle the input
+                            raise ValueError(
+                                f"HF inference API cannot handle too long input: {output['error']}"
+                            )
+                        # Enable truncation for the request
+                        payload.update({"parameters": {"truncation": True}})
 
             for single_output in output:
                 try:
