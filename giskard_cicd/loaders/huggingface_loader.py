@@ -78,14 +78,13 @@ class HuggingFaceLoader(BaseLoader):
 
         # Check that the dataset has the good feature names for the task.
         logger.debug("Retrieving feature mapping")
-        if manual_feature_mapping is None:
-            hf_model = self.load_model(model_id)
-            feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
-            logger.warn(
-                f'Feature mapping is not provided, using extracted "{feature_mapping}"'
-            )
-        else:
-            feature_mapping = manual_feature_mapping
+        hf_model = self.load_model(model_id)
+        feature_mapping = self._get_feature_mapping(hf_model, hf_dataset)
+        logger.warn(
+            f'Feature mapping is not provided, using extracted "{feature_mapping}"'
+        )
+        if manual_feature_mapping is not None:
+            feature_mapping.update(manual_feature_mapping)
 
         df = hf_dataset.to_pandas().rename(
             columns={v: k for k, v in feature_mapping.items()}
