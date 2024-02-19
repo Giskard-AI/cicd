@@ -25,7 +25,7 @@ def classification_model_from_inference_api(
             f"Not supported model type: {model_type}. Only text_classification models are supported for now."
         )
 
-    # Allow to customize the HF API endpoint and reuse a seesion
+    # Allow to customize the HF API endpoint and reuse a session
     # See https://huggingface.co/docs/huggingface_hub/package_reference/environment_variables#hfinferenceendpoint
     session = sessions.BaseUrlSession(
         os.environ.get(
