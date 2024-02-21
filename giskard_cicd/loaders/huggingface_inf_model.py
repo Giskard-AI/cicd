@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from time import sleep
 
 import numpy as np
@@ -33,6 +34,23 @@ def classification_model_from_inference_api(
         )
     )
     url = f"models/{model_name}"
+    # Create a basic template for request payload
+    request_payload = {"options": {"use_cache": True}}
+
+    def extract_inference_api_max_length(error_info):
+        max_length = 512  # Set a default value that most model uses
+        matched = re.search("must match the size of tensor b \((\d+)\)", error_info)
+        if matched:
+            try:
+                max_length = int(matched.group(1))
+                return max_length
+            except Exception as e:
+                logger.debug(e)
+
+        logger.warning(
+            f"Failed to extract max input length, use {max_length} by default"
+        )
+        return max_length
 
     # Utility to query HF inference API
     def query(payload):
@@ -59,7 +77,9 @@ def classification_model_from_inference_api(
 
         for i in range(0, len(raw_inputs), inference_api_batch_size):
             inputs = raw_inputs[i : min(i + inference_api_batch_size, len(raw_inputs))]
-            payload = {"inputs": inputs, "options": {"use_cache": True}}
+            request_payload.update(
+                {"inputs": inputs}
+            )  # Reuse the template to avoid adding parameters several times
 
             logger.debug(
                 f"Requesting {len(inputs)} rows of data: ({i}/{len(raw_inputs)})"
@@ -69,7 +89,7 @@ def classification_model_from_inference_api(
                 # Retry
                 logger.debug(output)
                 sleep(0.5)
-                output = query(payload)
+                output = query(request_payload)
 
                 if "error" in output:
                     if "warnings" in output and "Input is too long" in output["error"]:
@@ -83,16 +103,31 @@ def classification_model_from_inference_api(
                         }
                         """
                         if (
-                            "parameters" in payload
-                            and "truncation" in payload["parameters"]
-                            and payload["parameters"]
+                            "parameters" in request_payload
+                            and "truncation" in request_payload["parameters"]
+                            and request_payload["parameters"]
                         ):
-                            # The model still cannot handle the input
-                            raise ValueError(
-                                f"HF inference API cannot handle too long input: {output['error']}"
+                            if "max_length" in request_payload["parameters"]:
+                                # The model still cannot handle the input
+                                raise ValueError(
+                                    f"HF inference API cannot handle too long input: {output['error']}"
+                                )
+                            # Patch max length
+                            request_payload["parameters"].update(
+                                {
+                                    "max_length": extract_inference_api_max_length(
+                                        output["error"]
+                                    )
+                                }
                             )
-                        # Enable truncation for the request
-                        payload.update({"parameters": {"truncation": True}})
+                            logger.warning(
+                                "Your model is missing a max length in tokenizer config. "
+                                f"We are using {request_payload['parameters']['max_length']} as an alternative. "
+                                'Please add `"model_max_length": 512` to your `tokenizer_config.json` file.'
+                            )
+                        else:
+                            # Enable truncation for the request
+                            request_payload.update({"parameters": {"truncation": True}})
 
             for single_output in output:
                 try:
