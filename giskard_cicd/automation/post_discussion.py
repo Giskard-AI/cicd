@@ -3,8 +3,9 @@ import huggingface_hub as hf_hub
 import markdown
 import re
 from time import sleep
-from .utils import ISSUE_GROUPS
+import logging
 
+logger = logging.getLogger(__file__)  
 GISKARD_HUB_URL = "https://huggingface.co/spaces/giskardai/giskard"
 
 def construct_opening(dataset_id, dataset_config, dataset_split, vulnerability_count):
@@ -73,37 +74,52 @@ def save_post(report_path, path, dataset_id, dataset_config, dataset_split):
     with open(path, "w") as f:
         f.write(post)
 
+class Issue:
+    def __init__(self, description, examples):
+        self.description = description
+        self.examples = examples
+    
+    def __len__(self):
+        return len(self.description) + len(self.examples)
+    
+    def trim_examples(self):
+        # get characters count of the examples
+        if len(self.examples) > 60000:
+            self.examples = "</details>"
 
-def separate_report_by_issues(report):
-    # TODO: add markdown comments to the report as a split marker
-    regex = (
-        "\W(?="
-        + "|".join(["<details>\n<summary>👉" + issue for issue in ISSUE_GROUPS])
-        + ")"
-    )
-    sub_reports = re.split(regex, report)
-    return sub_reports
-
+def load_report_to_issues(report):
+    splited_issues = []
+    # <!-- issue --> and <!-- issue --> are used to separate the issues
+    issues = [ issue for issue in report.split("<!-- issue -->") if len(issue) > 0 ]
+    # <!-- example --> and <!-- example --> are used to separate the issues
+    for issue in issues:
+      splited_issue = issue.split("<!-- examples -->")
+      description = splited_issue[0]
+      examples = splited_issue[1]
+      splited_issues.append(Issue(description, examples))
+    return splited_issues
 
 def post_issue_as_comment(discussion, issue, token, repo_id):
-    comment = hf_hub.comment_discussion(
-        repo_id=repo_id,
-        repo_type="space",
-        discussion_num=discussion.num,
-        comment=issue,
-        token=token,
-    )
-    return comment
+    try:
+        hf_hub.comment_discussion(
+          repo_id=repo_id,
+          repo_type="space",
+          discussion_num=discussion.num,
+          comment=issue.description + issue.examples,
+          token=token,
+      )
+    except Exception as e:
+        logger.debug(f"Failed to post issue as comment: {e}")
 
 
 def post_too_long_report_in_comments(
     discussion, report, token, repo_id, test_suite_url=None
 ):
-    sub_reports = separate_report_by_issues(report)
-
-    for issue in sub_reports:
+    issues = load_report_to_issues(report)
+    for issue in issues:
+        if len(issue) > 60000:
+            issue.trim_examples()
         post_issue_as_comment(discussion, issue, token, repo_id)
-
     post_issue_as_comment(discussion, construct_closing(test_suite_url), token, repo_id)
     return discussion
 
