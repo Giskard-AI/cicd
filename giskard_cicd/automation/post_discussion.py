@@ -85,7 +85,7 @@ class Issue:
     def trim_examples(self):
         # get characters count of the examples
         if len(self.examples) > 60000:
-            self.examples = "</details>"
+            self.examples = "examples are too long to be displayed"
 
 def load_report_to_issues(report):
     splited_issues = []
@@ -93,19 +93,31 @@ def load_report_to_issues(report):
     issues = [ issue for issue in report.split("<!-- issue -->") if len(issue) > 0 ]
     # <!-- examples --> is used to separate the examples
     for issue in issues:
+      descriptions = []
+      examples = []
       splited_issue = issue.split("<!-- examples -->")
-      description = splited_issue[0]
-      examples = splited_issue[1]
-      splited_issues.append(Issue(description, examples))
+      descriptions.append(splited_issue[0])
+      for sub_issue in splited_issue[1:]:
+          res = sub_issue.split("</details>")
+          for i in range(0, len(res), 2):
+              if len(res[i]) == 0 or len(set(res[i])) < 10:
+                  continue
+              examples.append(res[i])
+              if i + 1 < len(res):
+                  descriptions.append(res[i + 1])
+      splited_issues.extend([Issue(description, example) for description, example in zip(descriptions, examples)])
     return splited_issues
 
 def post_issue_as_comment(discussion, issue, token, repo_id):
     try:
-        hf_hub.comment_discussion(
+      comment = issue
+      if isinstance(issue, Issue):
+          comment = issue.description + issue.examples
+      hf_hub.comment_discussion(
           repo_id=repo_id,
           repo_type="space",
           discussion_num=discussion.num,
-          comment=issue.description + issue.examples,
+          comment=comment,
           token=token,
       )
     except Exception as e:
