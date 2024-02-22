@@ -89,9 +89,9 @@ class Issue:
 
 def load_report_to_issues(report):
     splited_issues = []
-    # <!-- issue --> and <!-- issue --> are used to separate the issues
+    # <!-- issue --> is used to separate the issues
     issues = [ issue for issue in report.split("<!-- issue -->") if len(issue) > 0 ]
-    # <!-- example --> and <!-- example --> are used to separate the issues
+    # <!-- examples --> is used to separate the examples
     for issue in issues:
       splited_issue = issue.split("<!-- examples -->")
       description = splited_issue[0]
