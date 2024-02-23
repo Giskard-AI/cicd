@@ -11,7 +11,7 @@ version = "0.2.0"
 readme = "README.md"
 dependencies = [
     "datasets",
-    "giskard >= 2.3.0",
+    "giskard >= 2.7.3",
     "huggingface_hub",
     "torch",
     "transformers",
