@@ -132,6 +132,7 @@ def post_too_long_report_in_comments(
         if len(issue) > 60000:
             issue.trim_examples()
         post_issue_as_comment(discussion, issue, token, repo_id)
+        sleep(1)
     post_issue_as_comment(discussion, construct_closing(test_suite_url), token, repo_id)
     return discussion
 
