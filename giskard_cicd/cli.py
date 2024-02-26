@@ -1,7 +1,8 @@
 import argparse
+import giskard
 import json
 import logging
-import pickle
+import opendal
 import uuid
 
 from giskard_cicd.automation import (
@@ -60,7 +61,10 @@ def main():
     parser.add_argument("--hf_token", help="The token to push the report to the repo.")
 
     parser.add_argument(
-        "--persistent_scan", help="Persistent scan report.", type=bool, default=False
+        "--persist_scan",
+        help='Persist scan report with OpenDAL scheme and configs, e.g. {"scheme": "fs", "root": "/tmp"}.',
+        type=str,
+        default=False,
     )
 
     parser.add_argument(
@@ -170,20 +174,50 @@ def main():
     )
     report = runner.run(**runner_kwargs)
 
-    if args.persistent_scan:
-        run_args = [
-            args.model,
-            args.dataset,
-            args.dataset_config,
-            args.dataset_split,
-            args.feature_mapping,
-            args.label_mapping,
-        ]
-        run_info = "+".join(filter(lambda x: x is not None, run_args))
-        fn = f"{str(uuid.uuid5(uuid.NAMESPACE_OID, run_info))}.pkl"
-        with open(fn, "wb") as f:
-            pickle.dump(report, f)
-        print(f"Scan report persisted in {fn}")
+    persistent_url = None
+    if args.persist_scan:
+        try:
+            persist_scan_config = json.loads(args.persist_scan)
+            scheme = persist_scan_config.pop("scheme")
+            op = opendal.Operator(scheme=scheme, **persist_scan_config)
+
+            model_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, args.model))
+            scan_uuid = str(uuid.uuid4())
+
+            # Configurations
+            scanned_configs = {
+                "giskard_version": giskard.__version__,
+                **anonymous_runner_kwargs,
+            }
+            if "scan_config" in scanned_configs and scanned_configs["scan_config"]:
+                with open(scanned_configs["scan_config"], "r") as f:
+                    op.write(
+                        "{model_uuid}/{scan_uuid}/scan_config.yaml", f.read().encode()
+                    )
+            op.write(
+                "{model_uuid}/{scan_uuid}/runner_config.json",
+                json.dumps(scanned_configs).encode(),
+            )
+
+            # HTML report
+            html_report = report.to_html()
+            op.write("{model_uuid}/{scan_uuid}/report.html", html_report.encode())
+
+            # AVID report
+            avid_report = report.to_avid()
+            op.write(f"{model_uuid}/{scan_uuid}/avid.jsonl", avid_report.encode())
+
+            # TODO(Inoki): Get URL from S3
+            if scheme == "s3":
+                persistent_url = ""
+
+            logger.info(
+                f"Scan report persisted under {scheme}://{model_uuid}/{scan_uuid} ({persistent_url})"
+            )
+        except Exception:
+            logger.warning(
+                f"Persist scan report for {args.model} {args.dataset} {args.dataset_config} {args.dataset_split} failed."
+            )
 
     test_suite_url = None
     if args.giskard_hub_api_key is not None:
