@@ -192,28 +192,58 @@ def main():
             if "scan_config" in scanned_configs and scanned_configs["scan_config"]:
                 with open(scanned_configs["scan_config"], "r") as f:
                     op.write(
-                        "{model_uuid}/{scan_uuid}/scan_config.yaml", f.read().encode()
+                        f"{model_uuid}/{scan_uuid}/scan_config.yaml", f.read().encode()
                     )
             op.write(
-                "{model_uuid}/{scan_uuid}/runner_config.json",
+                f"{model_uuid}/{scan_uuid}/runner_config.json",
                 json.dumps(scanned_configs).encode(),
             )
 
             # HTML report
             html_report = report.to_html()
-            op.write("{model_uuid}/{scan_uuid}/report.html", html_report.encode())
+            op.write(f"{model_uuid}/{scan_uuid}/report.html", html_report.encode())
 
             # AVID report
             avid_report = report.to_avid()
             op.write(f"{model_uuid}/{scan_uuid}/avid.jsonl", avid_report.encode())
 
-            # TODO(Inoki): Get URL from S3
-            if scheme == "s3":
-                persistent_url = ""
-
             logger.info(
                 f"Scan report persisted under {scheme}://{model_uuid}/{scan_uuid} ({persistent_url})"
             )
+
+            # Get URL from S3
+            if scheme == "s3" and "bucket" in persist_scan_config:
+                from persistent import s3_utils
+
+                s3_utils.init_s3_client(
+                    access_key=(
+                        persist_scan_config["access_key_id"]
+                        if "access_key_id" in persist_scan_config
+                        else ""
+                    ),
+                    secret_key=(
+                        persist_scan_config["secret_access_key"]
+                        if "access_key_id" in persist_scan_config
+                        else ""
+                    ),
+                    endpoint_url=(
+                        persist_scan_config["endpoint"]
+                        if "access_key_id" in persist_scan_config
+                        else ""
+                    ),
+                    region=(
+                        persist_scan_config["region"]
+                        if "region" in persist_scan_config
+                        else ""
+                    ),
+                )
+                s3_root = (
+                    persist_scan_config["root"] if "root" in persist_scan_config else ""
+                )
+                persistent_url = s3_utils.get_s3_url(
+                    persist_scan_config["bucket"],
+                    f"{s3_root}{model_uuid}/{scan_uuid}/report.html",
+                )
         except Exception:
             logger.warning(
                 f"Persist scan report for {args.model} {args.dataset} {args.dataset_config} {args.dataset_split} failed."
