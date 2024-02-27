@@ -223,18 +223,18 @@ def main():
                     ),
                     secret_key=(
                         persist_scan_config["secret_access_key"]
-                        if "access_key_id" in persist_scan_config
+                        if "secret_access_key" in persist_scan_config
                         else ""
                     ),
                     endpoint_url=(
                         persist_scan_config["endpoint"]
-                        if "access_key_id" in persist_scan_config
+                        if "endpoint" in persist_scan_config
                         else ""
                     ),
                     region=(
                         persist_scan_config["region"]
                         if "region" in persist_scan_config
-                        else ""
+                        else "auto"
                     ),
                 )
                 s3_root = (
