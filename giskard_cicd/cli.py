@@ -67,8 +67,7 @@ def main():
             Persist scan report with OpenDAL scheme and configs from GSK_PERSIST_CONFIG env,
             e.g. {"scheme": "fs", "root": "/tmp"}.
         """,
-        type=bool,
-        default=False,
+        action="store_true",
     )
 
     parser.add_argument(
@@ -213,10 +212,6 @@ def main():
             avid_report = report.to_avid()
             op.write(f"{model_uuid}/{scan_uuid}/avid.jsonl", avid_report.encode())
 
-            logger.info(
-                f"Scan report persisted under {scheme}://{model_uuid}/{scan_uuid} ({persistent_url})"
-            )
-
             # Get URL from S3
             if scheme == "s3" and "bucket" in persist_scan_config:
                 from giskard_cicd.persistent import s3_utils
@@ -237,7 +232,7 @@ def main():
                         if "endpoint" in persist_scan_config
                         else ""
                     ),
-                    region=(
+                    region_name=(
                         persist_scan_config["region"]
                         if "region" in persist_scan_config
                         else "auto"
@@ -246,9 +241,17 @@ def main():
                 s3_root = (
                     persist_scan_config["root"] if "root" in persist_scan_config else ""
                 )
+                if s3_root == "/":
+                    # Trim root
+                    s3_root = ""
+
                 persistent_url = s3_utils.get_s3_url(
                     persist_scan_config["bucket"],
                     f"{s3_root}{model_uuid}/{scan_uuid}/report.html",
+                )
+
+                logger.info(
+                    f"Scan report persisted under {scheme}://{model_uuid}/{scan_uuid} ({persistent_url})"
                 )
         except Exception:
             logger.warning(

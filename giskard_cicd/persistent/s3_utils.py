@@ -1,4 +1,5 @@
 import boto3
+from urllib.parse import urljoin, urlparse
 
 import logging
 
@@ -18,14 +19,25 @@ def init_s3_client(access_key, secret_key, endpoint_url, region_name="us"):
     )
 
 
-def get_s3_url(bucket_name, k):
+def get_s3_url(bucket_name, k, is_public=True):
     global s3client
     if not s3client:
         return None
     try:
-        return s3client.generate_presigned_url(
-            "get_object", Params={"Key": k, "Bucket": bucket_name}
+        preview_html_k = k + ".preview.html"
+        # Copy for preview: we need REPLACE the "Content-Type" in metadata
+        s3client.copy_object(
+            CopySource={"Bucket": bucket_name, "Key": k},
+            Bucket=bucket_name,
+            ContentType="text/html",
+            MetadataDirective="REPLACE",
+            Key=preview_html_k,
         )
-    except Exception:
-        logger.warning(f"Cannot get URL for {k} in {bucket_name}.")
+
+        url = s3client.generate_presigned_url(
+            "get_object", Params={"Key": preview_html_k, "Bucket": bucket_name}
+        )
+        return urljoin(url, urlparse(url).path) if is_public else url
+    except Exception as e:
+        logger.warning(f"Cannot get URL for {k} in '{bucket_name}': {e}")
         return None
