@@ -209,7 +209,8 @@ def main():
             op.write(f"{model_uuid}/{scan_uuid}/report.html", html_report.encode())
 
             # AVID report
-            avid_report = report.to_avid()
+            avid_reports = report.to_avid()
+            avid_report = "\n".join(list(map(lambda r: r.json(), avid_reports)))
             op.write(f"{model_uuid}/{scan_uuid}/avid.jsonl", avid_report.encode())
 
             # Get URL from S3
