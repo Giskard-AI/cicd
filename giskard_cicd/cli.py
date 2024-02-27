@@ -293,6 +293,7 @@ def main():
             args.dataset_split,
             report,
             test_suite_url,
+            persistent_url,
         )
 
         if args.leaderboard_dataset:  # Commit to leaderboard dataset
