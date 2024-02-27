@@ -206,7 +206,11 @@ def main():
 
             # HTML report
             html_report = report.to_html()
-            op.write(f"{model_uuid}/{scan_uuid}/report.html", html_report.encode())
+            op.write(
+                f"{model_uuid}/{scan_uuid}/report.html",
+                html_report.encode(),
+                content_type="text/html",
+            )
 
             # AVID report
             avid_reports = report.to_avid()

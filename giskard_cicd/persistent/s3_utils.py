@@ -24,18 +24,8 @@ def get_s3_url(bucket_name, k, is_public=True):
     if not s3client:
         return None
     try:
-        preview_html_k = k + ".preview.html"
-        # Copy for preview: we need REPLACE the "Content-Type" in metadata
-        s3client.copy_object(
-            CopySource={"Bucket": bucket_name, "Key": k},
-            Bucket=bucket_name,
-            ContentType="text/html",
-            MetadataDirective="REPLACE",
-            Key=preview_html_k,
-        )
-
         url = s3client.generate_presigned_url(
-            "get_object", Params={"Key": preview_html_k, "Bucket": bucket_name}
+            "get_object", Params={"Key": k, "Bucket": bucket_name}
         )
         return urljoin(url, urlparse(url).path) if is_public else url
     except Exception as e:
