@@ -56,6 +56,7 @@ def construct_post_content(
     dataset_split,
     scan_report=None,
     test_suite_url=None,
+    persistent_url=None,
 ):
     if scan_report is not None:
         vulnerability_count = len(scan_report.scan_result.issues)
@@ -64,7 +65,11 @@ def construct_post_content(
 
     # Construct the content of the post
     opening = construct_opening(
-        dataset_id, dataset_config, dataset_split, vulnerability_count
+        dataset_id,
+        dataset_config,
+        dataset_split,
+        vulnerability_count,
+        persistent_url,
     )
 
     closing = construct_closing(test_suite_url)
@@ -194,6 +199,7 @@ def create_discussion(
         dataset_split,
         scan_report,
         test_suite_url=test_suite_url,
+        persistent_url=persistent_url,
     )
 
     discussion = hf_hub.create_discussion(
