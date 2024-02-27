@@ -3,6 +3,7 @@ import giskard
 import json
 import logging
 import opendal
+import os
 import uuid
 
 from giskard_cicd.automation import (
@@ -62,8 +63,11 @@ def main():
 
     parser.add_argument(
         "--persist_scan",
-        help='Persist scan report with OpenDAL scheme and configs, e.g. {"scheme": "fs", "root": "/tmp"}.',
-        type=str,
+        help="""
+            Persist scan report with OpenDAL scheme and configs from GSK_PERSIST_CONFIG env,
+            e.g. {"scheme": "fs", "root": "/tmp"}.
+        """,
+        type=bool,
         default=False,
     )
 
@@ -177,7 +181,9 @@ def main():
     persistent_url = None
     if args.persist_scan:
         try:
-            persist_scan_config = json.loads(args.persist_scan)
+            from giskard_cicd.persistent import PERSIST_CONFIG_ENV
+
+            persist_scan_config = json.loads(os.environ.get(PERSIST_CONFIG_ENV, "{}"))
             scheme = persist_scan_config.pop("scheme")
             op = opendal.Operator(scheme=scheme, **persist_scan_config)
 
@@ -213,7 +219,7 @@ def main():
 
             # Get URL from S3
             if scheme == "s3" and "bucket" in persist_scan_config:
-                from persistent import s3_utils
+                from giskard_cicd.persistent import s3_utils
 
                 s3_utils.init_s3_client(
                     access_key=(
@@ -246,7 +252,8 @@ def main():
                 )
         except Exception:
             logger.warning(
-                f"Persist scan report for {args.model} {args.dataset} {args.dataset_config} {args.dataset_split} failed."
+                "Failed to persist scan report for "
+                f"{args.model} {args.dataset} {args.dataset_config} {args.dataset_split}."
             )
 
     test_suite_url = None
