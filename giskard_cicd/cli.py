@@ -197,11 +197,14 @@ def main():
             if "scan_config" in scanned_configs and scanned_configs["scan_config"]:
                 with open(scanned_configs["scan_config"], "r") as f:
                     op.write(
-                        f"{model_uuid}/{scan_uuid}/scan_config.yaml", f.read().encode()
+                        f"{model_uuid}/{scan_uuid}/scan_config.yaml",
+                        f.read().encode(),
+                        content_type="text/x-yaml",
                     )
             op.write(
                 f"{model_uuid}/{scan_uuid}/runner_config.json",
                 json.dumps(scanned_configs).encode(),
+                content_type="application/json",
             )
 
             # HTML report
@@ -215,7 +218,11 @@ def main():
             # AVID report
             avid_reports = report.to_avid()
             avid_report = "\n".join(list(map(lambda r: r.json(), avid_reports)))
-            op.write(f"{model_uuid}/{scan_uuid}/avid.jsonl", avid_report.encode())
+            op.write(
+                f"{model_uuid}/{scan_uuid}/avid.jsonl",
+                avid_report.encode(),
+                content_type="application/jsonl",
+            )
 
             # Get URL from S3
             if scheme == "s3" and "bucket" in persist_scan_config:
