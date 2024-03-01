@@ -7,7 +7,7 @@ giskard_scanner = "giskard_cicd.cli:main"
 
 [project]
 name = "giskard_cicd"
-version = "0.2.0"
+version = "0.2.1"
 readme = "README.md"
 dependencies = [
     "datasets",
@@ -15,5 +15,8 @@ dependencies = [
     "huggingface_hub",
     "torch",
     "transformers",
+    "avidtools",
+    "opendal",
+    "boto3",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.12"

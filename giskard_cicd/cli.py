@@ -1,7 +1,9 @@
 import argparse
+import giskard
 import json
 import logging
-import pickle
+import opendal
+import os
 import uuid
 
 from giskard_cicd.automation import (
@@ -60,7 +62,12 @@ def main():
     parser.add_argument("--hf_token", help="The token to push the report to the repo.")
 
     parser.add_argument(
-        "--persistent_scan", help="Persistent scan report.", type=bool, default=False
+        "--persist_scan",
+        help="""
+            Persist scan report with OpenDAL scheme and configs from GSK_PERSIST_CONFIG env,
+            e.g. {"scheme": "fs", "root": "/tmp"}.
+        """,
+        action="store_true",
     )
 
     parser.add_argument(
@@ -170,20 +177,99 @@ def main():
     )
     report = runner.run(**runner_kwargs)
 
-    if args.persistent_scan:
-        run_args = [
-            args.model,
-            args.dataset,
-            args.dataset_config,
-            args.dataset_split,
-            args.feature_mapping,
-            args.label_mapping,
-        ]
-        run_info = "+".join(filter(lambda x: x is not None, run_args))
-        fn = f"{str(uuid.uuid5(uuid.NAMESPACE_OID, run_info))}.pkl"
-        with open(fn, "wb") as f:
-            pickle.dump(report, f)
-        print(f"Scan report persisted in {fn}")
+    persistent_url = None
+    if args.persist_scan:
+        try:
+            from giskard_cicd.persistent import PERSIST_CONFIG_ENV
+
+            persist_scan_config = json.loads(os.environ.get(PERSIST_CONFIG_ENV, "{}"))
+            scheme = persist_scan_config.pop("scheme")
+            op = opendal.Operator(scheme=scheme, **persist_scan_config)
+
+            model_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, args.model))
+            scan_uuid = str(uuid.uuid4())
+
+            # Configurations
+            scanned_configs = {
+                "giskard_version": giskard.__version__,
+                **anonymous_runner_kwargs,
+            }
+            if "scan_config" in scanned_configs and scanned_configs["scan_config"]:
+                with open(scanned_configs["scan_config"], "r") as f:
+                    op.write(
+                        f"{model_uuid}/{scan_uuid}/scan_config.yaml",
+                        f.read().encode(),
+                        content_type="text/x-yaml",
+                    )
+            op.write(
+                f"{model_uuid}/{scan_uuid}/runner_config.json",
+                json.dumps(scanned_configs).encode(),
+                content_type="application/json",
+            )
+
+            # HTML report
+            html_report = report.to_html()
+            op.write(
+                f"{model_uuid}/{scan_uuid}/report.html",
+                html_report.encode(),
+                content_type="text/html",
+            )
+
+            # AVID report
+            avid_reports = report.to_avid()
+            avid_report = "\n".join(list(map(lambda r: r.json(), avid_reports)))
+            op.write(
+                f"{model_uuid}/{scan_uuid}/avid.jsonl",
+                avid_report.encode(),
+                content_type="application/jsonl",
+            )
+
+            # Get URL from S3
+            if scheme == "s3" and "bucket" in persist_scan_config:
+                from giskard_cicd.persistent import s3_utils
+
+                s3_utils.init_s3_client(
+                    access_key=(
+                        persist_scan_config["access_key_id"]
+                        if "access_key_id" in persist_scan_config
+                        else ""
+                    ),
+                    secret_key=(
+                        persist_scan_config["secret_access_key"]
+                        if "secret_access_key" in persist_scan_config
+                        else ""
+                    ),
+                    endpoint_url=(
+                        persist_scan_config["endpoint"]
+                        if "endpoint" in persist_scan_config
+                        else ""
+                    ),
+                    region_name=(
+                        persist_scan_config["region"]
+                        if "region" in persist_scan_config
+                        else "auto"
+                    ),
+                )
+                s3_root = (
+                    persist_scan_config["root"] if "root" in persist_scan_config else ""
+                )
+                if s3_root == "/":
+                    # Trim root
+                    s3_root = ""
+
+                persistent_url = s3_utils.get_s3_url(
+                    persist_scan_config["bucket"],
+                    f"{s3_root}{model_uuid}/{scan_uuid}/report.html",
+                )
+
+                logger.info(
+                    f"Scan report persisted under {scheme}://{model_uuid}/{scan_uuid} ({persistent_url})"
+                )
+        except Exception:
+            logger.warning(
+                "Failed to persist scan report for "
+                f"{args.model} {args.dataset} {args.dataset_config} {args.dataset_split}."
+            )
 
     test_suite_url = None
     if args.giskard_hub_api_key is not None:
@@ -219,6 +305,7 @@ def main():
             args.dataset_split,
             report,
             test_suite_url,
+            persistent_url,
         )
 
         if args.leaderboard_dataset:  # Commit to leaderboard dataset

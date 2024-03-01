@@ -17,13 +17,15 @@ class PipelineReport:
     def to_markdown(self, template):
         return self.scan_result.to_markdown(template=template)
 
+    def to_avid(self):
+        return self.scan_result.to_avid()
+
 
 class PipelineRunner:
     def __init__(self, loaders):
         self.loaders = loaders
 
     def run(self, loader_id, **kwargs):
-
         # Get the loader
         loader = self.loaders[loader_id]
 
@@ -46,7 +48,7 @@ class PipelineRunner:
         # Run the scanner
         scan_result = gsk.scan(gsk_model, gsk_dataset, params=params, only=detectors)
         logger.info(f"Scanning took {time.time() - start:.2f}s")
-        
+
         # Report
         report = PipelineReport(scan_result)
 
