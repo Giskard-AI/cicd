@@ -274,17 +274,24 @@ def main():
     test_suite_url = None
     if args.giskard_hub_api_key is not None:
         # Upload to a Giskard Hub instance
-        logger.info(f"Uploading to {args.giskard_hub_url}")
-        test_suite_url = giskard_hub_upload_helper(
-            args,
-            report,
-            url=args.giskard_hub_url,
-            project_key=args.giskard_hub_project_key,
-            project=args.giskard_hub_project,
-            key=args.giskard_hub_api_key,
-            hf_token=args.giskard_hub_hf_token,
-            unlock_token=args.giskard_hub_unlock_token,
-        )
+        try:
+            logger.info(f"Uploading to {args.giskard_hub_url}")
+            test_suite_url = giskard_hub_upload_helper(
+                args,
+                report,
+                url=args.giskard_hub_url,
+                project_key=args.giskard_hub_project_key,
+                project=args.giskard_hub_project,
+                key=args.giskard_hub_api_key,
+                hf_token=args.giskard_hub_hf_token,
+                unlock_token=args.giskard_hub_unlock_token,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to upload "
+                f"{args.model} {args.dataset} {args.dataset_config} {args.dataset_split} "
+                f"to Giskard Hub: {e}"
+            )
 
     # In the future, write markdown report or directly push to discussion.
     if args.output_format == "markdown":
