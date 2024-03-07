@@ -58,7 +58,10 @@ def main():
         "--output_portal",
         help="The output portal of the report (either huggingface or local directory). Default is local.",
     )
-    parser.add_argument("--discussion_repo", help="The repo to push the report to.")
+    parser.add_argument(
+        "--discussion_repo",
+        help="The Hugging Face Spaces repo to push the report to. Default to model discussion page.",
+    )
     parser.add_argument("--hf_token", help="The token to push the report to the repo.")
 
     parser.add_argument(
