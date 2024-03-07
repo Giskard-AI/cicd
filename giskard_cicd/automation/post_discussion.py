@@ -127,14 +127,14 @@ def load_report_to_issues(report):
     return splited_issues
 
 
-def post_issue_as_comment(discussion, issue, token, repo_id):
+def post_issue_as_comment(discussion, issue, token, repo_id, repo_type):
     try:
         comment = issue
         if isinstance(issue, Issue):
             comment = issue.description + issue.examples
         hf_hub.comment_discussion(
             repo_id=repo_id,
-            repo_type="space",
+            repo_type=repo_type,
             discussion_num=discussion.num,
             comment=comment,
             token=token,
@@ -144,15 +144,18 @@ def post_issue_as_comment(discussion, issue, token, repo_id):
 
 
 def post_too_long_report_in_comments(
-    discussion, report, token, repo_id, test_suite_url=None
+    discussion, report, token, repo_id, repo_type, test_suite_url=None
 ):
     issues = load_report_to_issues(report)
     for issue in issues:
         if len(issue) > 60000:
             issue.trim_examples()
-        post_issue_as_comment(discussion, issue, token, repo_id)
+        post_issue_as_comment(discussion, issue, token, repo_id, repo_type)
+        # To keep order of sub-posts
         sleep(1)
-    post_issue_as_comment(discussion, construct_closing(test_suite_url), token, repo_id)
+    post_issue_as_comment(
+        discussion, construct_closing(test_suite_url), token, repo_id, repo_type
+    )
     return discussion
 
 
@@ -168,6 +171,12 @@ def create_discussion(
     test_suite_url: Optional[str],
     persistent_url: Optional[str] = None,
 ):
+    # Detect repo type
+    repo_type = "space"
+    if repo_id is None:
+        repo_type = "model"
+        repo_id = model_name
+
     if len(report) > 60000:
         vulnerability_count = len(scan_report.scan_result.issues)
         opening = construct_opening(
@@ -182,13 +191,18 @@ def create_discussion(
             title=f"Report for {model_name}",
             token=hf_token,
             description=opening,
-            repo_type="space",
+            repo_type=repo_type,
         )
         # wait for the discussion to be created
         # otherwise, the comments will be posted before the discussion description
         sleep(1)
         post_too_long_report_in_comments(
-            discussion, report, hf_token, repo_id, test_suite_url=test_suite_url
+            discussion,
+            report,
+            hf_token,
+            repo_id,
+            repo_type,
+            test_suite_url=test_suite_url,
         )
         return discussion
 
@@ -207,7 +221,7 @@ def create_discussion(
         title=f"Report for {model_name}",
         token=hf_token,
         description=description,
-        repo_type="space",
+        repo_type=repo_type,
     )
 
     return discussion
