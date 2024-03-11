@@ -110,7 +110,7 @@ def classification_model_from_inference_api(
                 # Enable truncation for the request
                 request_payload.update({"parameters": {"truncation": True}})
         elif status_code == 404:
-            raise RuntimeWarning("Model not found")
+            raise RuntimeError("Model not found")
 
     # Text classification: limit the scope so that the model does not import giskard_cicd
     def predict_from_text_classification_inference(df: pd.DataFrame) -> np.ndarray:
@@ -144,7 +144,7 @@ def classification_model_from_inference_api(
 
                 retry -= 1
                 if retry <= 0:
-                    logger.warning(
+                    raise RuntimeError(
                         f"Failed to request {url} after {max_retries} retries"
                     )
 
