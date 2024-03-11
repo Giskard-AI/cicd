@@ -15,7 +15,7 @@ from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
 from giskard_cicd.utils import giskard_hub_upload_helper
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -128,8 +128,18 @@ def main():
         type=str,
         default=None,
     )
+    parser.add_argument(
+        "--verbose",
+        help="Show verbose logs.",
+        action="store_true",
+    )
 
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger("giskard_cicd").setLevel(logging.DEBUG)
+    else:
+        logging.getLogger("giskard_cicd").setLevel(logging.INFO)
 
     supported_loaders = {
         "huggingface": HuggingFaceLoader(),

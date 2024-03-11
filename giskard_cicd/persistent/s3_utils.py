@@ -5,7 +5,7 @@ import logging
 
 
 s3client = None
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def init_s3_client(access_key, secret_key, endpoint_url, region_name="us"):

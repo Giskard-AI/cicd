@@ -5,7 +5,7 @@ import pathlib
 from giskard import GiskardClient
 from giskard.client.giskard_client import GiskardError
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 GISKARD_HUB_UNLOCK_STATUS_ENDPOINT = "hfs/unlock"
 

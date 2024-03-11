@@ -8,7 +8,7 @@ import pandas as pd
 from requests_toolbelt import sessions
 from giskard import Model
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def classification_model_from_inference_api(

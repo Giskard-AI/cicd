@@ -8,7 +8,7 @@ from giskard.models.base import BaseModel
 
 from .base_loader import BaseLoader
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 try:
     from giskard.utils.file_utils import get_file_name
