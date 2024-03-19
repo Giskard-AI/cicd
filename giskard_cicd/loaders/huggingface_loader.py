@@ -19,7 +19,7 @@ import numpy as np
 from .base_loader import BaseLoader, DatasetError
 from .huggingface_inf_model import classification_model_from_inference_api
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class HuggingFacePipelineModel(HuggingFaceModel):

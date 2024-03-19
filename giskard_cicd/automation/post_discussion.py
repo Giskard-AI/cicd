@@ -4,7 +4,7 @@ import markdown
 from time import sleep
 import logging
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 GISKARD_HUB_URL = "https://huggingface.co/spaces/giskardai/giskard"
 
 
