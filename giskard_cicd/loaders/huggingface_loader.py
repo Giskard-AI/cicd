@@ -240,7 +240,7 @@ class HuggingFaceLoader(BaseLoader):
                 raise ValueError(
                     "hf_token must be provided when using model_type='hf_inference_api'"
                 )
-            # To be used later in inference API mmodel
+            # To be used later in inference API model: avoid being pickled in model
             os.environ.update([("HF_TOKEN", hf_token)])
 
             return classification_model_from_inference_api(
