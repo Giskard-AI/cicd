@@ -13,8 +13,6 @@ def check_env_vars_and_login(hf_token=None, write_permission=False):
 
 
 def check_env_vars_and_login_for_dataset(hf_token=None, dataset_id=None):
-    if HF_WRITE_TOKEN is None and hf_token is None:
-        raise ValueError("HF_WRITE_TOKEN is not set")
 
     # check the leaderboard dataset exists
     if DATASET_ID is None and dataset_id is None:
