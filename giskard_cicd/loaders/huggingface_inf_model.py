@@ -60,6 +60,14 @@ def classification_model_from_inference_api(
                 "Missing Hugging Face access token. Please provide it in `HF_TOKEN` environment variable"
             )
 
+        if not session.base_url:
+            # GSK-3373: after unpickle, `base_url` is lost in the session
+            # See https://github.com/requests/toolbelt/issues/375
+            # We reset it for flexibility
+            session.base_url = os.environ.get(
+                "HF_INFERENCE_ENDPOINT", default="https://api-inference.huggingface.co"
+            )
+
         headers = {"Authorization": f"Bearer {hf_token}"}
         response = session.post(url, headers=headers, json=payload)
         if response.status_code != 200:
