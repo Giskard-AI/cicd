@@ -11,6 +11,7 @@ from giskard_cicd.automation import (
     create_discussion,
     init_dataset_commit_scheduler,
 )
+from giskard_cicd.automation.utils import check_env_vars_and_login
 from giskard_cicd.loaders import GithubLoader, HuggingFaceLoader
 from giskard_cicd.pipeline.runner import PipelineRunner
 from giskard_cicd.utils import giskard_hub_upload_helper
@@ -190,6 +191,10 @@ def main():
     )
     report = runner.run(**runner_kwargs)
 
+    if "HF_TOKEN" in os.environ:
+        # Unset HF_TOKEN, which was set before creation of HF inference API model
+        os.environ.pop("HF_TOKEN")
+
     persistent_url = None
     if args.persist_scan:
         try:
@@ -313,27 +318,30 @@ def main():
         rendered_report = report.to_html()
 
     if args.output_portal == "huggingface":
-        # Push to discussion
-        # FIXME: dataset config and dataset split might have been inferred
-        discussion = create_discussion(
-            args.discussion_repo,
-            args.model,
-            args.hf_token,
-            rendered_report,
-            args.dataset,
-            args.dataset_config,
-            args.dataset_split,
-            report,
-            test_suite_url,
-            persistent_url,
-        )
+        try:
+            # Login Hugging Face: use given token or HF_WRITE_TOKEN in env
+            check_env_vars_and_login(hf_token=args.hf_token)
 
-        if args.leaderboard_dataset:  # Commit to leaderboard dataset
-            scheduler = init_dataset_commit_scheduler(
-                hf_token=args.hf_token, dataset_id=args.leaderboard_dataset
+            # Push to discussion
+            # FIXME: dataset config and dataset split might have been inferred
+            discussion = create_discussion(
+                args.discussion_repo,
+                args.model,
+                args.hf_token,
+                rendered_report,
+                args.dataset,
+                args.dataset_config,
+                args.dataset_split,
+                report,
+                test_suite_url,
+                persistent_url,
             )
 
-            try:
+            if args.leaderboard_dataset:  # Commit to leaderboard dataset
+                scheduler = init_dataset_commit_scheduler(
+                    hf_token=args.hf_token, dataset_id=args.leaderboard_dataset
+                )
+
                 commit_to_dataset(
                     scheduler,
                     args.model,
@@ -343,8 +351,8 @@ def main():
                     discussion,
                     report,
                 )
-            except Exception as e:
-                logging.debug(f"Failed to commit to dataset: {e}")
+        except Exception as e:
+            logging.debug(f"Failed to submit to Hugging Face: {e}")
 
     if args.output:
         with open(args.output, "w") as f:
