@@ -207,6 +207,9 @@ def main():
             model_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, args.model))
             scan_uuid = str(uuid.uuid4())
 
+            # Login Hugging Face: use given token or HF_WRITE_TOKEN in env
+            check_env_vars_and_login(hf_token=args.hf_token)
+
             api = HfApi()
             # Configurations
             scanned_configs = {
